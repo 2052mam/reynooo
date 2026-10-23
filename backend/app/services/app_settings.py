@@ -365,3 +365,58 @@ def public_limits(user_id=None):
             'limit_mb': (limit / (1024 * 1024)) if limit else None,
         }
     return out
+
+# --------------------------------------------------------------------------
+# Authentication delivery policy
+# --------------------------------------------------------------------------
+_AUTH_METHODS_KEY = 'auth_methods'
+_DEFAULT_AUTH_METHODS = {
+    'registration_method': 'sms',
+    'login_priority': 'sms',
+}
+_AUTH_METHODS_CACHE_TTL = 15
+_auth_methods_cache = {'at': 0.0, 'scope': None, 'value': None}
+
+
+def get_auth_methods():
+    """Current public auth policy, with safe SMS-first defaults.
+
+    A missing/unavailable settings table never blocks sign-in: the established
+    phone/SMS path remains the default until the owner explicitly changes it.
+    """
+    now = time.monotonic()
+    scope = _cache_scope()
+    cached = _auth_methods_cache
+    if (cached['value'] is not None and cached['scope'] == scope and
+            now - cached['at'] < _AUTH_METHODS_CACHE_TTL):
+        return dict(cached['value'])
+
+    methods = dict(_DEFAULT_AUTH_METHODS)
+    raw = _read(_AUTH_METHODS_KEY)
+    if raw:
+        try:
+            saved = json.loads(raw)
+        except (TypeError, ValueError):
+            saved = None
+        if isinstance(saved, dict):
+            if saved.get('registration_method') in ('sms', 'totp'):
+                methods['registration_method'] = saved['registration_method']
+            if saved.get('login_priority') in ('sms', 'totp'):
+                methods['login_priority'] = saved['login_priority']
+    _auth_methods_cache.update(at=now, scope=scope, value=dict(methods))
+    return methods
+
+
+def save_auth_methods(*, registration_method, login_priority):
+    """Validate and persist the admin-selected registration/login paths."""
+    if registration_method not in ('sms', 'totp'):
+        raise ValueError('Invalid registration method')
+    if login_priority not in ('sms', 'totp'):
+        raise ValueError('Invalid login priority')
+    policy = {
+        'registration_method': registration_method,
+        'login_priority': login_priority,
+    }
+    _write(_AUTH_METHODS_KEY, json.dumps(policy))
+    _auth_methods_cache.update(at=0.0, scope=None, value=None)
+    return policy

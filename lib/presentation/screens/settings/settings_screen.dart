@@ -4,6 +4,7 @@ import '../../widgets/chat/join_privacy_tile.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../data/services/storage_service.dart';
+import '../../../core/utils/app_locale.dart';
 
 import '../../../data/services/api_service.dart';
 import '../../../data/services/background_poll_service.dart';
@@ -19,6 +20,7 @@ import '../profile/profile_screen.dart';
 import 'account_switcher_screen.dart';
 import 'archive_lock_screen.dart';
 import 'background_connection_screen.dart';
+import 'phone_recovery_screen.dart';
 import 'device_management_screen.dart';
 import 'offline_media_screen.dart';
 import 'admin_reports_screen.dart';
@@ -197,10 +199,10 @@ class SettingsScreen extends ConsumerWidget {
                 Divider(height: 1, indent: 56, color: theme.dividerColor.withValues(alpha: 0.2)),
                 ListTile(
                   leading: _iconBadge(Icons.sync_rounded, const Color(0xFF00ACC1)),
-                  title: const Text('اتصال پس‌زمینه', style: TextStyle(fontWeight: FontWeight.w600)),
-                  subtitle: const Text(
-                    'دریافت پیام وقتی برنامه بسته است (مثل تلگرام)',
-                    style: TextStyle(fontSize: 12),
+                  title: Text(AppLocale.pick('اتصال پس‌زمینه', 'Background connection'), style: const TextStyle(fontWeight: FontWeight.w600)),
+                  subtitle: Text(
+                    AppLocale.pick('دریافت پیام وقتی برنامه بسته است (مثل تلگرام)', 'Receive messages while the app is closed (like Telegram)'),
+                    style: const TextStyle(fontSize: 12),
                   ),
                   trailing: const Icon(Icons.chevron_right_rounded),
                   onTap: () => Navigator.of(context).push(
@@ -362,6 +364,17 @@ class SettingsScreen extends ConsumerWidget {
                   trailing: const Icon(Icons.chevron_right_rounded),
                   onTap: () => Navigator.of(context).push(
                     MaterialPageRoute(builder: (_) => const TwoFactorSecurityScreen()),
+                  ),
+                ),
+                Divider(height: 1, indent: 56, color: theme.dividerColor.withValues(alpha: 0.2)),
+                ListTile(
+                  key: const ValueKey('phone-recovery-tile'),
+                  leading: _iconBadge(Icons.sms_outlined, const Color(0xFF059669)),
+                  title: Text(isFa ? 'شمارهٔ بازیابی' : 'Recovery phone', style: const TextStyle(fontWeight: FontWeight.w600)),
+                  subtitle: Text(isFa ? 'تأیید شماره برای بازیابی امن حساب' : 'Verify your phone for account recovery'),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const PhoneRecoveryScreen()),
                   ),
                 ),
                 Divider(height: 1, indent: 56, color: theme.dividerColor.withValues(alpha: 0.2)),
@@ -731,10 +744,10 @@ class _NotificationTileState extends State<_NotificationTile> {
           size: 20,
         ),
       ),
-      title: const Text('اعلان پیام‌های جدید', style: TextStyle(fontWeight: FontWeight.w600)),
-      subtitle: const Text(
-        'نمایش اعلان حتی وقتی برنامه بسته است (بدون نیاز به گوگل)',
-        style: TextStyle(fontSize: 12),
+      title: Text(AppLocale.pick('اعلان پیام‌های جدید', 'New message notifications'), style: const TextStyle(fontWeight: FontWeight.w600)),
+      subtitle: Text(
+        AppLocale.pick('نمایش اعلان حتی وقتی برنامه بسته است (بدون نیاز به گوگل)', 'Show notifications even when the app is closed (no Google services required)'),
+        style: const TextStyle(fontSize: 12),
       ),
       trailing: _loaded
           ? Switch(value: _enabled, onChanged: _toggle)
@@ -787,10 +800,10 @@ class _SoundEffectsTileState extends State<_SoundEffectsTile> {
           size: 20,
         ),
       ),
-      title: const Text('افکت‌های صوتی پیام‌ها', style: TextStyle(fontWeight: FontWeight.w600)),
-      subtitle: const Text(
-        'صدای ارسال و دریافت پیام و واکنش‌ها',
-        style: TextStyle(fontSize: 12),
+      title: Text(AppLocale.pick('افکت‌های صوتی پیام‌ها', 'Message sound effects'), style: const TextStyle(fontWeight: FontWeight.w600)),
+      subtitle: Text(
+        AppLocale.pick('صدای ارسال و دریافت پیام و واکنش‌ها', 'Sounds for sending, receiving, and reacting to messages'),
+        style: const TextStyle(fontSize: 12),
       ),
       trailing: Switch(value: _enabled, onChanged: _toggle),
     );

@@ -33,6 +33,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   bool _loading = false;
   bool _obscure = true;
   bool _legacyMode = false;
+  bool _loginPriorityTotp = false;
   String? _error;
 
   List<SavedAccount> _saved = [];
@@ -42,6 +43,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   void initState() {
     super.initState();
     _loadSavedAccounts();
+    _loadAuthMethods();
   }
 
   @override
@@ -50,6 +52,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     _emailCtrl.dispose();
     _passwordCtrl.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadAuthMethods() async {
+    try {
+      final methods = await ApiService().get('/auth/methods');
+      if (!mounted) return;
+      final totpPrimary = methods['login_priority'] == 'totp';
+      setState(() {
+        _loginPriorityTotp = totpPrimary;
+        if (totpPrimary) _legacyMode = true;
+      });
+    } catch (_) {
+      // Preserve the existing SMS-first screen if policy lookup is unavailable.
+    }
   }
 
   Future<void> _loadSavedAccounts() async {
@@ -87,6 +103,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             ),
           ),
         );
+      } else if (_legacyMode && error.details['require_phone'] == true) {
+        setState(() {
+          _legacyMode = false;
+          _error = AppLocale.pick(
+            'این حساب Google Authenticator ندارد؛ با شماره موبایل و پیامک وارد شوید.',
+            'This account has no authenticator enrolled. Sign in with your phone and SMS instead.',
+          );
+        });
       } else {
         setState(() => _error = error.message);
       }
@@ -251,7 +275,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   Text(
                     phoneMode
                         ? AppLocale.pick('شماره موبایل خود را وارد کنید؛ اگر ثبت‌نام نکرده‌اید به صفحه ثبت‌نام می‌روید', 'Enter your mobile number. If you are not registered, you can sign up next.')
-                        : AppLocale.pick('ورود ایمیلی فقط برای حساب‌های قدیمیِ بدون شماره موبایل است', 'Email sign-in is available only for legacy accounts without a mobile number.'),
+                        : AppLocale.pick(_loginPriorityTotp ? 'ورود با ایمیل، رمز عبور و کد Google Authenticator' : 'ورود ایمیلی فقط برای حساب‌های قدیمیِ بدون شماره موبایل است', _loginPriorityTotp ? 'Primary sign-in: email, password, and Google Authenticator code.' : 'Email sign-in is available only for legacy accounts without a mobile number.'),
                     style: TextStyle(
                       color: theme.textTheme.bodySmall?.color,
                       fontSize: 13.5,

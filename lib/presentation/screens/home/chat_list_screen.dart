@@ -15,6 +15,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/locale_provider.dart';
 import '../../../data/models/chat_folder_model.dart';
 import '../../../core/utils/chat_search.dart';
+import '../../../core/utils/app_locale.dart';
 import '../../../data/models/chat_model.dart';
 import '../../../data/services/api_service.dart';
 import '../chat/chat_screen.dart';
@@ -799,8 +800,22 @@ class _SecurityAlertBannerState extends ConsumerState<_SecurityAlertBanner> {
 
     final critical = alert['severity'] == 'critical';
     final accent = critical ? Colors.red : Colors.orange;
-    final title = (alert['title'] as String?)?.trim();
-    final body = (alert['body'] as String?)?.trim();
+    final rawTitle = (alert['title'] as String?)?.trim();
+    final rawBody = (alert['body'] as String?)?.trim();
+    final title = AppLocale.isFa
+        ? rawTitle
+        : (rawTitle == 'ورود جدید به حساب شما' || rawTitle == 'رویداد امنیتی در حساب شما'
+            ? 'New sign-in to your account'
+            : rawTitle ?? 'Account security alert');
+    final body = AppLocale.isFa || rawBody == null
+        ? rawBody
+        : rawBody
+            .replaceFirst('دستگاه:', 'Device:')
+            .replaceFirst('IP:', 'IP:')
+            .replaceFirst('ناشناس', 'Unknown')
+            .replaceFirst('نامشخص', 'Unknown')
+            .replaceFirst('اگر این شما نبودید، فوراً این دستگاه را حذف کنید.', 'If this was not you, remove this device immediately.');
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
       key: const ValueKey('security-alert-banner'),
@@ -840,11 +855,11 @@ class _SecurityAlertBannerState extends ConsumerState<_SecurityAlertBanner> {
                       Text(
                         title?.isNotEmpty == true
                             ? title!
-                            : 'رویداد امنیتی در حساب شما',
+                            : AppLocale.pick('رویداد امنیتی در حساب شما', 'Account security alert'),
                         style: TextStyle(
                           fontSize: 13.5,
                           fontWeight: FontWeight.w700,
-                          color: accent.shade900,
+                          color: isDark ? accent.shade200 : accent.shade900,
                         ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
@@ -853,25 +868,27 @@ class _SecurityAlertBannerState extends ConsumerState<_SecurityAlertBanner> {
                         const SizedBox(height: 3),
                         Text(
                           body!,
-                          style: const TextStyle(
-                              fontSize: 12, color: Colors.black87),
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.85),
+                          ),
                           maxLines: 3,
                           overflow: TextOverflow.ellipsis,
                         ),
                       ],
                       const SizedBox(height: 5),
                       Text(
-                        'برای مدیریت دستگاه‌ها ضربه بزنید',
+                        AppLocale.pick('برای مدیریت دستگاه‌ها ضربه بزنید', 'Tap to manage devices'),
                         style: TextStyle(
                             fontSize: 11.5,
                             fontWeight: FontWeight.w600,
-                            color: accent.shade700),
+                            color: isDark ? accent.shade300 : accent.shade700),
                       ),
                     ],
                   ),
                 ),
                 IconButton(
-                  tooltip: 'بستن',
+                  tooltip: AppLocale.pick('بستن', 'Dismiss'),
                   icon: const Icon(Icons.close_rounded, size: 18),
                   onPressed: _busy ? null : _dismiss,
                 ),

@@ -461,3 +461,38 @@ def test_report_actions_require_the_csrf_token(panel, app, reported_channel):
     assert response.status_code == 302
     with app.app_context():
         assert db.session.get(Report, reported_channel).status == 'pending'
+
+
+def test_admin_can_select_authentication_methods_without_secrets(panel, app):
+    from app.services import app_settings
+
+    settings_page = panel.get(f'/{SECRET}/settings')
+    assert settings_page.status_code == 200
+    body = text(settings_page)
+    assert 'auth-methods' in body
+    assert 'Google Authenticator' in body
+    assert 'totp_secret' not in body
+    assert 'totp_uri' not in body
+
+    saved = panel.post(f'/{SECRET}/settings/auth-methods', data={
+        'csrf_token': csrf(panel),
+        'registration_method': 'totp',
+        'login_priority': 'totp',
+    })
+    assert saved.status_code == 302
+    with app.app_context():
+        assert app_settings.get_auth_methods() == {
+            'registration_method': 'totp', 'login_priority': 'totp',
+        }
+
+
+def test_admin_auth_method_save_rejects_invalid_values(panel, app):
+    from app.services import app_settings
+
+    panel.post(f'/{SECRET}/settings/auth-methods', data={
+        'csrf_token': csrf(panel),
+        'registration_method': 'show-codes',
+        'login_priority': 'totp',
+    })
+    with app.app_context():
+        assert app_settings.get_auth_methods()['registration_method'] == 'sms'

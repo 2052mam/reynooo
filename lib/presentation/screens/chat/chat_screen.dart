@@ -2722,7 +2722,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                       if (_can('send_photos'))
                         ListTile(
                           leading: attachBadge(Icons.photo_library_rounded, const [Color(0xFF8E2DE2), Color(0xFF4A00E0)]),
-                          title: const Text('عکس از گالری', style: TextStyle(fontWeight: FontWeight.w600)),
+                          title: Text(_label('Photos', 'عکس از گالری'), style: TextStyle(fontWeight: FontWeight.w600)),
                           onTap: () {
                             Navigator.pop(ctx);
                             _pickAndSendMedia(ImageSource.gallery);
@@ -2731,7 +2731,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                       if (_can('send_photos'))
                         ListTile(
                           leading: attachBadge(Icons.camera_alt_rounded, const [Color(0xFF00C6FF), Color(0xFF0072FF)]),
-                          title: const Text('دوربین', style: TextStyle(fontWeight: FontWeight.w600)),
+                          title: Text(_label('Camera', 'دوربین'), style: TextStyle(fontWeight: FontWeight.w600)),
                           onTap: () {
                             Navigator.pop(ctx);
                             _pickAndSendMedia(ImageSource.camera);
@@ -2740,7 +2740,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                       if (_can('send_videos'))
                         ListTile(
                           leading: attachBadge(Icons.videocam_rounded, const [Color(0xFFFF416C), Color(0xFFFF4B2B)]),
-                          title: const Text('ویدیو', style: TextStyle(fontWeight: FontWeight.w600)),
+                          title: Text(_label('Video', 'ویدیو'), style: TextStyle(fontWeight: FontWeight.w600)),
                           onTap: () {
                             Navigator.pop(ctx);
                             _pickAndSendMedia(ImageSource.gallery, isVideo: true);
@@ -2749,8 +2749,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                       if (_can('send_files'))
                         ListTile(
                           leading: attachBadge(Icons.insert_drive_file_rounded, const [Color(0xFFF7971E), Color(0xFFFFD200)]),
-                          title: const Text('ارسال فایل (اسناد، PDF، ZIP، PNG، TXT، ...)', style: TextStyle(fontWeight: FontWeight.w600)),
-                          subtitle: const Text('همه فرمت‌ها مانند تلگرام پشتیبانی می‌شوند', style: TextStyle(fontSize: 11.5, color: Colors.grey)),
+                          title: Text(_label('Send file (documents, PDF, ZIP, PNG, TXT, ...)', 'ارسال فایل (اسناد، PDF، ZIP، PNG، TXT، ...)'), style: TextStyle(fontWeight: FontWeight.w600)),
+                          subtitle: Text(_label('All formats are supported, like Telegram', 'همه فرمت‌ها مانند تلگرام پشتیبانی می‌شوند'), style: TextStyle(fontSize: 11.5, color: Colors.grey)),
                           onTap: () {
                             Navigator.pop(ctx);
                             _pickAndSendFile();
@@ -2758,8 +2758,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                         ),
                       ListTile(
                         leading: attachBadge(Icons.emoji_emotions_rounded, const [Color(0xFFFF0844), Color(0xFFFFB199)]),
-                        title: const Text('استیکر', style: TextStyle(fontWeight: FontWeight.w600)),
-                        subtitle: const Text('انتخاب از پک‌های آماده', style: TextStyle(fontSize: 11.5, color: Colors.grey)),
+                        title: Text(_label('Sticker', 'استیکر'), style: TextStyle(fontWeight: FontWeight.w600)),
+                        subtitle: Text(_label('Choose from sticker packs', 'انتخاب از پک‌های آماده'), style: TextStyle(fontSize: 11.5, color: Colors.grey)),
                         onTap: () {
                           Navigator.pop(ctx);
                           _showStickerPicker();
@@ -2768,7 +2768,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                       ListTile(
                         leading: attachBadge(Icons.gif_box_rounded, const [Color(0xFF43E97B), Color(0xFF38F9D7)]),
                         title: const Text('GIF', style: TextStyle(fontWeight: FontWeight.w600)),
-                        subtitle: const Text('گیف‌های ذخیره‌شده شما (فایل .gif آپلود کنید)', style: TextStyle(fontSize: 11.5, color: Colors.grey)),
+                        subtitle: Text(_label('Your saved GIFs (upload a .gif file)', 'گیف‌های ذخیره‌شده شما (فایل .gif آپلود کنید)'), style: TextStyle(fontSize: 11.5, color: Colors.grey)),
                         onTap: () {
                           Navigator.pop(ctx);
                           _showGifPicker();
@@ -2777,8 +2777,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                       if (_can('send_files'))
                         ListTile(
                           leading: attachBadge(Icons.music_note_rounded, const [Color(0xFF654EA3), Color(0xFFEAAFC8)]),
-                          title: const Text('موسیقی / فایل صوتی', style: TextStyle(fontWeight: FontWeight.w600)),
-                          subtitle: const Text('ارسال آهنگ با پخش‌کننده داخلی', style: TextStyle(fontSize: 11.5, color: Colors.grey)),
+                          title: Text(_label('Music / audio file', 'موسیقی / فایل صوتی'), style: TextStyle(fontWeight: FontWeight.w600)),
+                          subtitle: Text(_label('Send music with the built-in player', 'ارسال آهنگ با پخش‌کننده داخلی'), style: TextStyle(fontSize: 11.5, color: Colors.grey)),
                           onTap: () {
                             Navigator.pop(ctx);
                             _pickAndSendMusic();
@@ -2787,8 +2787,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                       ListTile(
                         key: const ValueKey('attach-poll'),
                         leading: attachBadge(Icons.poll_rounded, const [Color(0xFF2193B0), Color(0xFF6DD5ED)]),
-                        title: const Text('نظرسنجی', style: TextStyle(fontWeight: FontWeight.w600)),
-                        subtitle: const Text('سؤال با چند گزینه، مثل تلگرام', style: TextStyle(fontSize: 11.5, color: Colors.grey)),
+                        title: Text(_label('Poll', 'نظرسنجی'), style: TextStyle(fontWeight: FontWeight.w600)),
+                        subtitle: Text(_label('Ask a question with multiple options', 'سؤال با چند گزینه، مثل تلگرام'), style: TextStyle(fontSize: 11.5, color: Colors.grey)),
                         onTap: () {
                           Navigator.pop(ctx);
                           _createPoll();
@@ -2797,8 +2797,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                       ListTile(
                         key: const ValueKey('attach-quiz'),
                         leading: attachBadge(Icons.quiz_rounded, const [Color(0xFF834D9B), Color(0xFFD04ED6)]),
-                        title: const Text('آزمون (چهارگزینه‌ای)', style: TextStyle(fontWeight: FontWeight.w600)),
-                        subtitle: const Text('یک گزینه صحیح دارد و نتیجه اعلام می‌شود', style: TextStyle(fontSize: 11.5, color: Colors.grey)),
+                        title: Text(_label('Quiz (multiple choice)', 'آزمون (چهارگزینه‌ای)'), style: TextStyle(fontWeight: FontWeight.w600)),
+                        subtitle: Text(_label('One correct answer; results are shown', 'یک گزینه صحیح دارد و نتیجه اعلام می‌شود'), style: TextStyle(fontSize: 11.5, color: Colors.grey)),
                         onTap: () {
                           Navigator.pop(ctx);
                           _createPoll(quiz: true);
@@ -2806,8 +2806,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                       ),
                       ListTile(
                         leading: attachBadge(Icons.location_on_rounded, const [Color(0xFF11998E), Color(0xFF38EF7D)]),
-                        title: const Text('موقعیت مکانی', style: TextStyle(fontWeight: FontWeight.w600)),
-                        subtitle: const Text('ارسال لوکیشن ثابت یا زنده', style: TextStyle(fontSize: 11.5, color: Colors.grey)),
+                        title: Text(_label('Location', 'موقعیت مکانی'), style: TextStyle(fontWeight: FontWeight.w600)),
+                        subtitle: Text(_label('Share a place or live location', 'ارسال لوکیشن ثابت یا زنده'), style: TextStyle(fontSize: 11.5, color: Colors.grey)),
                         onTap: () {
                           Navigator.pop(ctx);
                           _sendLocation();
@@ -2815,8 +2815,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                       ),
                       ListTile(
                         leading: attachBadge(Icons.enhanced_encryption_rounded, const [Color(0xFFF2994A), Color(0xFFF2C94C)]),
-                        title: const Text('پیام رمزدار', style: TextStyle(fontWeight: FontWeight.w600)),
-                        subtitle: const Text('قفل متن با رمز (بدون رمز باز نمی‌شود)', style: TextStyle(fontSize: 11.5, color: Colors.grey)),
+                        title: Text(_label('Password-protected message', 'پیام رمزدار'), style: TextStyle(fontWeight: FontWeight.w600)),
+                        subtitle: Text(_label('Lock text with a password', 'قفل متن با رمز (بدون رمز باز نمی‌شود)'), style: TextStyle(fontSize: 11.5, color: Colors.grey)),
                         onTap: () {
                           Navigator.pop(ctx);
                           _sendEncryptedText();
@@ -2824,8 +2824,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                       ),
                       ListTile(
                         leading: attachBadge(Icons.play_circle_fill_rounded, const [Color(0xFF00B4DB), Color(0xFF0083B0)]),
-                        title: const Text('پیام ویدیویی گرد', style: TextStyle(fontWeight: FontWeight.w600)),
-                        subtitle: const Text('ویدیو دایره‌ای مانند تلگرام (video_note)', style: TextStyle(fontSize: 11.5, color: Colors.grey)),
+                        title: Text(_label('Video message', 'پیام ویدیویی گرد'), style: TextStyle(fontWeight: FontWeight.w600)),
+                        subtitle: Text(_label('Round video message (video_note)', 'ویدیو دایره‌ای مانند تلگرام (video_note)'), style: TextStyle(fontSize: 11.5, color: Colors.grey)),
                         onTap: () {
                           Navigator.pop(ctx);
                           _recordVideoNote();
@@ -2834,8 +2834,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                       Divider(color: theme.dividerColor.withValues(alpha: 0.3), height: 16),
                       SwitchListTile(
                         secondary: const Icon(Icons.visibility_off_outlined, color: Colors.purple),
-                        title: const Text('حالت اسپویلر (مخفی تا زمان لمس)', style: TextStyle(fontWeight: FontWeight.w600)),
-                        subtitle: const Text('پیام بعدی محو نمایش داده می‌شود', style: TextStyle(fontSize: 11.5, color: Colors.grey)),
+                        title: Text(_label('Spoiler (hidden until tapped)', 'حالت اسپویلر (مخفی تا زمان لمس)'), style: TextStyle(fontWeight: FontWeight.w600)),
+                        subtitle: Text(_label('The next message will be blurred', 'پیام بعدی محو نمایش داده می‌شود'), style: TextStyle(fontSize: 11.5, color: Colors.grey)),
                         value: _isSpoiler,
                         onChanged: (val) {
                           setSheetState(() {});
@@ -3048,38 +3048,38 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                   ),
                 ListTile(
                   leading: const Icon(Icons.report_outlined, color: Colors.orange),
-                  title: Text(_chatType == 'private' ? 'گزارش و بلاک کاربر' : 'گزارش گروه/کانال'),
-                  subtitle: const Text('گزارش + بلاک همزمان (مانند تلگرام)', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                  title: Text(_chatType == 'private' ? _label('Report and block user', 'گزارش و بلاک کاربر') : _label('Report group/channel', 'گزارش گروه/کانال')) ,
+                  subtitle: Text(_label('Report and block at the same time', 'گزارش + بلاک همزمان (مانند تلگرام)'), style: TextStyle(fontSize: 11, color: Colors.grey)),
                   onTap: () { Navigator.pop(ctx); _reportCurrentChat(); },
                 ),
                 ListTile(
                   leading: const Icon(Icons.shield_outlined, color: Colors.green),
-                  title: Text(_hasSecureSession ? 'ادامه گفتگوی امن' : 'گفتگوی امن'),
+                  title: Text(_hasSecureSession ? _label('Continue secure chat', 'ادامه گفتگوی امن') : _label('Secure chat', 'گفتگوی امن')) ,
                   subtitle: Text(
                     _hasSecureSession
-                        ? 'گفتگوی امن باز است • برای ادامه ضربه بزنید'
-                        : 'صفحه مشکی جدا • ضد اسکرین‌شات • بدون فوروارد و دانلود',
+                        ? _label('Secure chat is open • tap to continue', 'گفتگوی امن باز است • برای ادامه ضربه بزنید')
+                        : _label('Separate protected screen • screenshots, forwarding, and downloads disabled', 'صفحه مشکی جدا • ضد اسکرین‌شات • بدون فوروارد و دانلود'),
                     style: const TextStyle(fontSize: 11, color: Colors.grey),
                   ),
                   onTap: () { Navigator.pop(ctx); _openSecureChat(); },
                 ),
-                ListTile(leading: const Icon(Icons.schedule), title: const Text('پیام‌های زمان‌بندی‌شده'), onTap: () { Navigator.pop(ctx); _openScheduledSheet(); }),
-                ListTile(leading: const Icon(Icons.image), title: const Text('بک‌گراند تصویری'), onTap: () { Navigator.pop(ctx); _setBackgroundImage(); }),
-                ListTile(leading: const Icon(Icons.search), title: const Text('جستجو در چت'), onTap: () { Navigator.pop(ctx); setState(() => _searchMode = true); }),
+                ListTile(leading: const Icon(Icons.schedule), title: Text(_label('Scheduled messages', 'پیام‌های زمان‌بندی‌شده')), onTap: () { Navigator.pop(ctx); _openScheduledSheet(); }),
+                ListTile(leading: const Icon(Icons.image), title: Text(_label('Chat wallpaper', 'بک‌گراند تصویری')), onTap: () { Navigator.pop(ctx); _setBackgroundImage(); }),
+                ListTile(leading: const Icon(Icons.search), title: Text(_label('Search in chat', 'جستجو در چت')), onTap: () { Navigator.pop(ctx); setState(() => _searchMode = true); }),
                 const Divider(height: 12),
-                ListTile(leading: const Icon(Icons.delete_outline), title: const Text('پاک کردن تاریخچه برای من'), onTap: () { Navigator.pop(ctx); _clearHistory(forAll: false); }),
+                ListTile(leading: const Icon(Icons.delete_outline), title: Text(_label('Clear history for me', 'پاک کردن تاریخچه برای من')), onTap: () { Navigator.pop(ctx); _clearHistory(forAll: false); }),
                 if (!isGroupOrChannel || _myRole == 'owner' || _capabilities['clear_history_for_all'] == true)
                   ListTile(
                     key: const ValueKey('clear-history-for-all'),
                     leading: const Icon(Icons.delete_forever, color: Colors.red),
-                    title: const Text('پاک کردن برای همه', style: TextStyle(color: Colors.red)),
-                    subtitle: const Text('برای همه اعضای چت حذف می‌شود', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                    title: Text(_label('Clear history for everyone', 'پاک کردن برای همه'), style: const TextStyle(color: Colors.red)),
+                    subtitle: Text(_label('This will be removed for all chat members', 'برای همه اعضای چت حذف می‌شود'), style: const TextStyle(fontSize: 11, color: Colors.grey)),
                     onTap: () { Navigator.pop(ctx); _clearHistory(forAll: true); },
                   ),
                 if (_canPinMessages && _pinned.isNotEmpty)
                   ListTile(key: const ValueKey('unpin-all'), leading: const Icon(Icons.push_pin_outlined), title: Text(ChatLabels.of(context).unpinAll), onTap: () { Navigator.pop(ctx); _unpinAll(); }),
                 if (!isGroupOrChannel)
-                  ListTile(leading: const Icon(Icons.block, color: Colors.red), title: const Text('بلاک کاربر', style: TextStyle(color: Colors.red)), onTap: () { Navigator.pop(ctx); _blockUser(); }),
+                  ListTile(leading: const Icon(Icons.block, color: Colors.red), title: Text(_label('Block user', 'بلاک کاربر'), style: const TextStyle(color: Colors.red)), onTap: () { Navigator.pop(ctx); _blockUser(); }),
                 const SizedBox(height: 16),
               ],
             ),
@@ -3561,7 +3561,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                 children: [
                   IconButton(
                     icon: const Icon(Icons.attach_file_rounded),
-                    tooltip: 'پیوست (عکس، فایل، استیکر، GIF، ویدیو گرد)',
+                    tooltip: _label('Attach media or files', 'پیوست (عکس، فایل، استیکر، GIF، ویدیو گرد)'),
                     onPressed: _showAttachMenu,
                   ),
                 if (_isSpoiler)

@@ -10,6 +10,7 @@ import '../../../data/services/device_service.dart';
 import '../../../data/services/terms_service.dart';
 import '../../widgets/chat/terms_dialog.dart';
 import 'phone_verification_screen.dart';
+import 'totp_registration_screen.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key, this.initialMobileNumber});
@@ -32,12 +33,26 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   bool _obscure = true;
   String? _error;
   bool _termsAccepted = false;
+  bool _registrationUsesTotp = false;
 
   @override
   void initState() {
     super.initState();
     final mobile = widget.initialMobileNumber?.trim();
     if (mobile != null && mobile.isNotEmpty) _mobileCtrl.text = mobile;
+    _loadAuthMethods();
+  }
+
+  Future<void> _loadAuthMethods() async {
+    try {
+      final methods = await ApiService().get('/auth/methods');
+      if (mounted) {
+        setState(() => _registrationUsesTotp =
+            methods['registration_method'] == 'totp');
+      }
+    } catch (_) {
+      // SMS remains the server's fail-safe default.
+    }
   }
 
   @override
@@ -81,19 +96,31 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       });
 
       if (!mounted) return;
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (_) => PhoneVerificationScreen(
-            verificationId: res['verification_id'] as String,
-            mobileNumber:
-                res['mobile_number'] as String? ?? _mobileCtrl.text.trim(),
-            flow: PhoneVerificationFlow.registration,
-            deliveryChannel: res['delivery_channel'] as String? ?? 'sms',
-            resendAfterSeconds:
-                (res['resend_after_seconds'] as num?)?.toInt() ?? 300,
+      if (res['verification_method'] == 'totp') {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (_) => TotpRegistrationScreen(
+              verificationId: res['verification_id'] as String,
+              secret: res['totp_secret'] as String,
+              uri: res['totp_uri'] as String,
+            ),
           ),
-        ),
-      );
+        );
+      } else {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (_) => PhoneVerificationScreen(
+              verificationId: res['verification_id'] as String,
+              mobileNumber:
+                  res['mobile_number'] as String? ?? _mobileCtrl.text.trim(),
+              flow: PhoneVerificationFlow.registration,
+              deliveryChannel: res['delivery_channel'] as String? ?? 'sms',
+              resendAfterSeconds:
+                  (res['resend_after_seconds'] as num?)?.toInt() ?? 300,
+            ),
+          ),
+        );
+      }
     } on ApiException catch (e) {
       if (mounted) setState(() => _error = e.message);
     } catch (_) {
@@ -157,7 +184,14 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  AppLocale.pick('برای ادامه، یک کد تأیید با پیامک ارسال می‌شود. Google Authenticator اختیاری است.', 'We will text you a verification code. Google Authenticator is optional.' ),
+                  AppLocale.pick(
+                    _registrationUsesTotp
+                        ? 'روش تأیید: Google Authenticator.'
+                        : 'روش تأیید: پیامک.',
+                    _registrationUsesTotp
+                        ? 'Verification method: Google Authenticator.'
+                        : 'Verification method: SMS text message.',
+                  ),
                   style: TextStyle(
                     color: theme.textTheme.bodySmall?.color,
                     fontSize: 13,
@@ -214,7 +248,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   keyboardType: TextInputType.phone,
                   textDirection: TextDirection.ltr,
                   decoration: InputDecoration(
-                    labelText: AppLocale.pick('شماره موبایل', 'Mobile number'),
+                    labelText: _registrationUsesTotp
+                        ? AppLocale.pick('شماره موبایل (برای بازیابی)', 'Mobile number (for recovery)')
+                        : AppLocale.pick('شماره موبایل', 'Mobile number'),
                     hintText: '09149141414',
                     hintTextDirection: TextDirection.ltr,
                     prefixIcon: Icon(Icons.phone_outlined, color: primary),
