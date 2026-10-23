@@ -21,6 +21,9 @@ class _ScheduledMessagesSheetState extends State<ScheduledMessagesSheet> {
   String? _error;
   List<MessageModel> _messages = [];
 
+  String _t(String en, String fa) =>
+      Localizations.localeOf(context).languageCode == 'fa' ? fa : en;
+
   @override
   void initState() {
     super.initState();
@@ -58,14 +61,14 @@ class _ScheduledMessagesSheetState extends State<ScheduledMessagesSheet> {
       await widget.api.post('/messages/$messageId/scheduled/send-now', {});
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('پیام به طور فوری ارسال شد')),
+          SnackBar(content: Text(_t('Message sent immediately.', 'پیام به طور فوری ارسال شد'))),
         );
         _loadScheduled();
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('خطا: $e')),
+          SnackBar(content: Text(_t('Error: $e', 'خطا: $e'))),
         );
       }
     }
@@ -76,14 +79,14 @@ class _ScheduledMessagesSheetState extends State<ScheduledMessagesSheet> {
       await widget.api.post('/messages/$messageId/scheduled', {});
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('ارسال زمان‌بندی‌شده لغو شد')),
+          SnackBar(content: Text(_t('Scheduled message cancelled.', 'ارسال زمان‌بندی‌شده لغو شد'))),
         );
         _loadScheduled();
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('خطا: $e')),
+          SnackBar(content: Text(_t('Error: $e', 'خطا: $e'))),
         );
       }
     }
@@ -117,9 +120,9 @@ class _ScheduledMessagesSheetState extends State<ScheduledMessagesSheet> {
                 children: [
                   const Icon(Icons.schedule, color: Colors.blue),
                   const SizedBox(width: 8),
-                  const Text(
-                    'پیام‌های زمان‌بندی‌شده',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  Text(
+                    _t('Scheduled messages', 'پیام‌های زمان‌بندی‌شده'),
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   const Spacer(),
                   IconButton(
@@ -135,10 +138,10 @@ class _ScheduledMessagesSheetState extends State<ScheduledMessagesSheet> {
                     : _error != null
                         ? Center(child: Text(_error!, style: const TextStyle(color: Colors.red)))
                         : _messages.isEmpty
-                            ? const Center(
+                            ? Center(
                                 child: Text(
-                                  'هیچ پیام زمان‌بندی‌شده‌ای در این چت نیست',
-                                  style: TextStyle(color: Colors.grey),
+                                  _t('There are no scheduled messages in this chat.', 'هیچ پیام زمان‌بندی‌شده‌ای در این چت نیست'),
+                                  style: const TextStyle(color: Colors.grey),
                                 ),
                               )
                             : ListView.builder(
@@ -147,20 +150,20 @@ class _ScheduledMessagesSheetState extends State<ScheduledMessagesSheet> {
                                 itemBuilder: (context, index) {
                                   final msg = _messages[index];
                                   final scheduledTimeStr = msg.scheduledAt != null
-                                      ? '${msg.scheduledAt!.year}/${msg.scheduledAt!.month}/${msg.scheduledAt!.day} ساعت ${msg.scheduledAt!.hour.toString().padLeft(2, '0')}:${msg.scheduledAt!.minute.toString().padLeft(2, '0')}'
-                                      : 'زمان‌بندی‌شده';
+                                      ? '${msg.scheduledAt!.year}/${msg.scheduledAt!.month}/${msg.scheduledAt!.day} ${_t('at', 'ساعت')} ${msg.scheduledAt!.hour.toString().padLeft(2, '0')}:${msg.scheduledAt!.minute.toString().padLeft(2, '0')}'
+                                      : _t('Scheduled', 'زمان‌بندی‌شده');
                                   return Card(
                                     margin: const EdgeInsets.symmetric(vertical: 6),
                                     child: ListTile(
                                       title: Text(
                                         msg.content?.isNotEmpty == true
                                             ? msg.content!
-                                            : '[رسانه]',
+                                            : _t('[Media]', '[رسانه]'),
                                         maxLines: 2,
                                         overflow: TextOverflow.ellipsis,
                                       ),
                                       subtitle: Text(
-                                        'زمان ارسال: $scheduledTimeStr',
+                                        _t('Send time: $scheduledTimeStr', 'زمان ارسال: $scheduledTimeStr'),
                                         style: TextStyle(color: Colors.blue[700], fontSize: 12),
                                       ),
                                       trailing: Row(
@@ -168,12 +171,12 @@ class _ScheduledMessagesSheetState extends State<ScheduledMessagesSheet> {
                                         children: [
                                           IconButton(
                                             icon: const Icon(Icons.send_rounded, color: Colors.green),
-                                            tooltip: 'ارسال فوری',
+                                            tooltip: _t('Send now', 'ارسال فوری'),
                                             onPressed: () => _sendNow(msg.id),
                                           ),
                                           IconButton(
                                             icon: const Icon(Icons.delete_outline, color: Colors.red),
-                                            tooltip: 'لغو زمان‌بندی',
+                                            tooltip: _t('Cancel scheduled message', 'لغو زمان‌بندی'),
                                             onPressed: () => _cancelScheduled(msg.id),
                                           ),
                                         ],

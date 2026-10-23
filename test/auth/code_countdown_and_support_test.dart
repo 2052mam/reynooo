@@ -95,8 +95,8 @@ void main() {
         await tester.pump();
         await tester.pump();
 
-        expect(find.text('ارسال دوباره کد تا 02:00 دیگر'), findsOneWidget);
-        expect(find.text('کد جدید پیامک شد.'), findsOneWidget);
+        expect(find.text('Resend code in 02:00'), findsOneWidget);
+        expect(find.text('A new code was sent by SMS.'), findsOneWidget);
         await disposeTree(tester);
       }, () => client);
     });
@@ -120,7 +120,7 @@ void main() {
         await tester.pump();
         await tester.pump();
 
-        expect(find.text('ارسال دوباره کد تا 00:45 دیگر'), findsOneWidget);
+        expect(find.text('Resend code in 00:45'), findsOneWidget);
         await disposeTree(tester);
       }, () => client);
     });
@@ -131,7 +131,7 @@ void main() {
         (tester) async {
       await pumpVerification(tester, channel: 'in_app');
 
-      expect(find.textContaining('داخل برنامه ارسال شد'), findsOneWidget);
+      expect(find.textContaining('sent to another device'), findsOneWidget);
       expect(find.byKey(const ValueKey('force-sms-button')), findsOneWidget);
       await disposeTree(tester);
     });
@@ -140,7 +140,7 @@ void main() {
         (tester) async {
       await pumpVerification(tester);
 
-      expect(find.textContaining('پیامک شد'), findsOneWidget);
+      expect(find.textContaining('sent by SMS'), findsOneWidget);
       expect(find.byKey(const ValueKey('force-sms-button')), findsNothing);
       await disposeTree(tester);
     });
@@ -168,7 +168,7 @@ void main() {
         await tester.pump();
 
         expect(sentBody?['force_sms'], true);
-        expect(find.text('کد جدید پیامک شد.'), findsOneWidget);
+        expect(find.text('A new code was sent by SMS.'), findsOneWidget);
         // Having switched to SMS, the in-app notice is gone.
         expect(find.byKey(const ValueKey('force-sms-button')), findsNothing);
         await disposeTree(tester);
@@ -197,7 +197,7 @@ void main() {
         await tester.pumpAndSettle();
         await tester.enterText(
             find.byType(TextFormField).first, '+989121234567');
-        await tester.tap(find.text('ادامه'));
+        await tester.tap(find.text('Continue'));
         await tester.pump();
         await tester.pump();
 

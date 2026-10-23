@@ -46,7 +46,7 @@ void main() {
     await http.runWithClient(() async {
       await pumpLogin(tester);
       await tester.enterText(find.byType(TextFormField).single, '+989121234567');
-      await tester.tap(find.text('ادامه'));
+      await tester.tap(find.text('Continue'));
       await tester.pumpAndSettle();
 
       expect(find.byType(RegisterScreen), findsOneWidget);
@@ -73,7 +73,7 @@ void main() {
     await http.runWithClient(() async {
       await pumpLogin(tester);
       await tester.enterText(find.byType(TextFormField).single, '+989121234567');
-      await tester.tap(find.text('ادامه'));
+      await tester.tap(find.text('Continue'));
       await tester.pumpAndSettle();
       expect(find.byType(RegisterScreen), findsOneWidget);
       await tester.pumpWidget(const SizedBox());
@@ -97,7 +97,7 @@ void main() {
     await http.runWithClient(() async {
       await pumpLogin(tester);
       await tester.enterText(find.byType(TextFormField).single, '+989121234567');
-      await tester.tap(find.text('ادامه'));
+      await tester.tap(find.text('Continue'));
       await tester.pumpAndSettle();
       expect(find.byType(PhoneVerificationScreen), findsOneWidget);
       expect(find.byType(RegisterScreen, skipOffstage: false), findsNothing);

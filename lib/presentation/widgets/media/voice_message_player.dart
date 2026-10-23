@@ -331,7 +331,7 @@ class _VoiceMessagePlayerState extends State<VoiceMessagePlayer>
                 ),
               ),
               IconButton(
-                tooltip: 'دانلود ویس',
+                tooltip: labels.isFa ? 'دانلود ویس' : 'Download voice message',
                 visualDensity: VisualDensity.compact,
                 color: color,
                 onPressed: _downloading ? null : _downloadVoice,

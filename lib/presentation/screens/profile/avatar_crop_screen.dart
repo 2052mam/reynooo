@@ -6,6 +6,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:image/image.dart' as img;
 import 'package:path_provider/path_provider.dart';
+import '../../widgets/chat/chat_labels.dart';
 
 /// Point 2: Telegram-style circular cropper for profile pictures.
 ///
@@ -18,12 +19,12 @@ class AvatarCropScreen extends StatefulWidget {
   const AvatarCropScreen({
     super.key,
     required this.imageFile,
-    this.title = 'برش عکس پروفایل',
+    this.title,
     this.outputSize = 720,
   });
 
   final File imageFile;
-  final String title;
+  final String? title;
 
   /// Edge length of the square JPEG that gets written out.
   final int outputSize;
@@ -73,7 +74,9 @@ class _AvatarCropScreenState extends State<AvatarCropScreen> {
       }
       setState(() => _image = frame.image);
     } catch (_) {
-      if (mounted) setState(() => _error = 'این تصویر قابل خواندن نیست.');
+      if (mounted) {
+        setState(() => _error = ChatLabels.of(context).imageUnreadable);
+      }
     }
   }
 
@@ -128,7 +131,7 @@ class _AvatarCropScreenState extends State<AvatarCropScreen> {
       if (mounted) {
         setState(() {
           _saving = false;
-          _error = 'ذخیره برش انجام نشد. دوباره تلاش کنید.';
+          _error = ChatLabels.of(context).cropSaveFailed;
         });
       }
     }
@@ -187,12 +190,13 @@ class _AvatarCropScreenState extends State<AvatarCropScreen> {
   @override
   Widget build(BuildContext context) {
     final image = _image;
+    final labels = ChatLabels.of(context);
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
         backgroundColor: Colors.black,
         foregroundColor: Colors.white,
-        title: Text(widget.title),
+        title: Text(widget.title ?? labels.cropProfilePhoto),
         actions: [
           if (image != null)
             TextButton(
@@ -204,8 +208,8 @@ class _AvatarCropScreenState extends State<AvatarCropScreen> {
                       child: CircularProgressIndicator(
                           strokeWidth: 2, color: Colors.white),
                     )
-                  : const Text('تأیید',
-                      style: TextStyle(
+                  : Text(labels.confirm,
+                      style: const TextStyle(
                           color: Colors.white, fontWeight: FontWeight.bold)),
             ),
         ],

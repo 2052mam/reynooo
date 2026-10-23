@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
+import '../../../core/utils/app_locale.dart';
 import '../../../data/services/api_service.dart';
 import '../../../data/services/connection_service.dart';
 import '../../../data/services/push_service.dart';
@@ -77,9 +78,9 @@ class _BackgroundConnectionScreenState
       await SystemSettingsService.openAppInfo();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text(
-            'گزینه «توقف فعالیت برنامه در صورت عدم استفاده» را خاموش کنید، بعد برگردید.',
+            AppLocale.pick('گزینه «توقف فعالیت برنامه در صورت عدم استفاده» را خاموش کنید، بعد برگردید.', 'Turn off “Pause app activity if unused”, then return here.'),
           ),
         ),
       );
@@ -98,7 +99,7 @@ class _BackgroundConnectionScreenState
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'اعلان آزمایشی ارسال شد (${res['delivered'] ?? 0} دستگاه) — باید ظرف چند ثانیه برسد.',
+            AppLocale.pick('اعلان آزمایشی ارسال شد (${res['delivered'] ?? 0} دستگاه) — باید ظرف چند ثانیه برسد.', 'Test notification sent to ${res['delivered'] ?? 0} device(s); it should arrive within seconds.'),
           ),
         ),
       );
@@ -108,16 +109,16 @@ class _BackgroundConnectionScreenState
         SnackBar(
           content: Text(
             e.statusCode == 404
-                ? 'سرویس پوش روی سرور پیکربندی نشده — اعلان‌ها از طریق اتصال پس‌زمینه می‌رسند.'
-                : 'ارسال ناموفق بود: ${e.message}',
+                ? AppLocale.pick('سرویس پوش روی سرور پیکربندی نشده — اعلان‌ها از طریق اتصال پس‌زمینه می‌رسند.', 'Push is not configured on the server; notifications use the background connection.')
+                : AppLocale.pick('ارسال ناموفق بود: ${e.message}', 'Could not send: ${e.message}'),
           ),
         ),
       );
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('ارسال ناموفق بود. اتصال اینترنت را بررسی کنید.'),
+        SnackBar(
+          content: Text(AppLocale.pick('ارسال ناموفق بود. اتصال اینترنت را بررسی کنید.', 'Could not send. Check your internet connection.')),
         ),
       );
     } finally {
@@ -132,8 +133,8 @@ class _BackgroundConnectionScreenState
       SnackBar(
         content: Text(
           opened
-              ? 'در تنظیمات بازشده، «شروع خودکار» را برای SecureMessenger فعال کنید.'
-              : 'باز کردن تنظیمات ممکن نشد. لطفاً دستی در تنظیمات گوشی اجازه شروع خودکار بدهید.',
+              ? AppLocale.pick('در تنظیمات بازشده، «شروع خودکار» را برای Reyno فعال کنید.', 'Enable autostart for Reyno in the settings that opened.')
+              : AppLocale.pick('باز کردن تنظیمات ممکن نشد. لطفاً دستی در تنظیمات گوشی اجازه شروع خودکار بدهید.', 'Could not open settings. Enable autostart for Reyno manually in your phone settings.'),
         ),
       ),
     );
@@ -144,7 +145,7 @@ class _BackgroundConnectionScreenState
     final healthy =
         _enabled && _running && _batteryExempt && _hibernationExempt;
     return Scaffold(
-      appBar: AppBar(title: const Text('اتصال پس‌زمینه')),
+      appBar: AppBar(title: Text(AppLocale.pick('اتصال پس‌زمینه', 'Background connection'))),
       body: !_loaded
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
@@ -171,8 +172,8 @@ class _BackgroundConnectionScreenState
                           Expanded(
                             child: Text(
                               healthy
-                                  ? 'اتصال پس‌زمینه فعال است. پیام‌ها حتی با بسته بودن برنامه می‌رسند.'
-                                  : 'برای دریافت پیام وقتی برنامه بسته است، موارد زیر را کامل کنید.',
+                                  ? AppLocale.pick('اتصال پس‌زمینه فعال است. پیام‌ها حتی با بسته بودن برنامه می‌رسند.', 'Background connection is active. Messages can arrive while the app is closed.')
+                                  : AppLocale.pick('برای دریافت پیام وقتی برنامه بسته است، موارد زیر را کامل کنید.', 'Complete the steps below to receive messages while the app is closed.'),
                               style: const TextStyle(fontSize: 13),
                             ),
                           ),
@@ -182,20 +183,20 @@ class _BackgroundConnectionScreenState
                   ),
                   const SizedBox(height: 8),
                   if (!Platform.isAndroid)
-                    const Card(
+                    Card(
                       child: Padding(
-                        padding: EdgeInsets.all(16),
+                        padding: const EdgeInsets.all(16),
                         child: Text(
-                          'سرویس نگه‌دارنده اتصال مخصوص اندروید است.',
+                          AppLocale.pick('سرویس نگه‌دارنده اتصال مخصوص اندروید است.', 'The keep-alive connection service is available on Android only.'),
                           style: TextStyle(fontSize: 13),
                         ),
                       ),
                     ),
                   SwitchListTile(
                     secondary: const Icon(Icons.sync_outlined),
-                    title: const Text('اتصال پس‌زمینه'),
-                    subtitle: const Text(
-                      'سرویس سبک نگه‌دارنده (مثل تلگرام) — با اعلان دائمی «متصل». خاموش = اعلان فقط در بازه‌های ~۱۵ دقیقه‌ای.',
+                    title: Text(AppLocale.pick('اتصال پس‌زمینه', 'Background connection')),
+                    subtitle: Text(
+                      AppLocale.pick('سرویس سبک نگه‌دارنده (مثل تلگرام) — با اعلان دائمی «متصل». خاموش = اعلان فقط در بازه‌های ~۱۵ دقیقه‌ای.', 'Lightweight keep-alive service (like Telegram) with a persistent Connected notification. Off: checks about every 15 minutes.'),
                       style: TextStyle(fontSize: 12),
                     ),
                     value: _enabled,
@@ -209,9 +210,9 @@ class _BackgroundConnectionScreenState
                           : Icons.pause_circle_outline,
                       color: _running ? Colors.green : Colors.grey,
                     ),
-                    title: const Text('وضعیت سرویس'),
+                    title: Text(AppLocale.pick('وضعیت سرویس', 'Service status')),
                     subtitle: Text(
-                      _running ? 'در حال اجرا' : 'متوقف شده',
+                      _running ? AppLocale.pick('در حال اجرا', 'Running') : AppLocale.pick('متوقف شده', 'Stopped'),
                       style: const TextStyle(fontSize: 12),
                     ),
                     trailing: _busy
@@ -223,7 +224,7 @@ class _BackgroundConnectionScreenState
                           )
                         : TextButton(
                             onPressed: _refresh,
-                            child: const Text('به‌روزرسانی'),
+                            child: Text(AppLocale.pick('به‌روزرسانی', 'Refresh')),
                           ),
                   ),
                   ListTile(
@@ -233,11 +234,11 @@ class _BackgroundConnectionScreenState
                           : Icons.battery_alert_outlined,
                       color: _batteryExempt ? Colors.green : Colors.orange,
                     ),
-                    title: const Text('معافیت از بهینه‌سازی باتری'),
+                    title: Text(AppLocale.pick('معافیت از بهینه‌سازی باتری', 'Battery optimization exemption')),
                     subtitle: Text(
                       _batteryExempt
-                          ? 'فعال است — اتصال در حالت خواب گوشی هم کار می‌کند.'
-                          : 'لازم است — بدون آن، شیائومی/هواوی اتصال را در خواب می‌بندند.',
+                          ? AppLocale.pick('فعال است — اتصال در حالت خواب گوشی هم کار می‌کند.', 'Enabled — connection can work while the phone sleeps.')
+                          : AppLocale.pick('لازم است — بدون آن، شیائومی/هواوی اتصال را در خواب می‌بندند.', 'Required — some phone makers stop background connections without it.'),
                       style: const TextStyle(fontSize: 12),
                     ),
                     trailing: _batteryExempt
@@ -245,7 +246,7 @@ class _BackgroundConnectionScreenState
                             color: Colors.green, size: 20)
                         : FilledButton.tonal(
                             onPressed: _fixBattery,
-                            child: const Text('فعال‌سازی'),
+                            child: Text(AppLocale.pick('فعال‌سازی', 'Enable')),
                           ),
                   ),
                   ListTile(
@@ -256,11 +257,11 @@ class _BackgroundConnectionScreenState
                       color:
                           _hibernationExempt ? Colors.green : Colors.orange,
                     ),
-                    title: const Text('عدم توقف خودکار برنامه'),
+                    title: Text(AppLocale.pick('عدم توقف خودکار برنامه', 'Prevent automatic app suspension')),
                     subtitle: Text(
                       _hibernationExempt
-                          ? 'فعال است — «توقف فعالیت در صورت عدم استفاده» خاموش است.'
-                          : 'لازم است — اگر روشن بماند، اندروید اتصال را بعد از بستن برنامه می‌بندد.',
+                          ? AppLocale.pick('فعال است — «توقف فعالیت در صورت عدم استفاده» خاموش است.', 'Enabled — “Pause app activity if unused” is off.')
+                          : AppLocale.pick('لازم است — اگر روشن بماند، اندروید اتصال را بعد از بستن برنامه می‌بندد.', 'Required — Android may stop the connection after you close the app.'),
                       style: const TextStyle(fontSize: 12),
                     ),
                     trailing: _hibernationExempt
@@ -268,20 +269,20 @@ class _BackgroundConnectionScreenState
                             color: Colors.green, size: 20)
                         : FilledButton.tonal(
                             onPressed: _fixHibernation,
-                            child: const Text('رفع'),
+                            child: Text(AppLocale.pick('رفع', 'Fix')),
                           ),
                   ),
                   ListTile(
                     leading: const Icon(Icons.rocket_launch_outlined,
                         color: Colors.blue),
-                    title: const Text('شروع خودکار (Autostart)'),
-                    subtitle: const Text(
-                      'در گوشی‌های شیائومی/هواوی/اوپو/ویوو: اجازه شروع خودکار تا اتصال بعد از بستن برنامه زنده بماند.',
+                    title: Text(AppLocale.pick('شروع خودکار (Autostart)', 'Autostart')),
+                    subtitle: Text(
+                      AppLocale.pick('در گوشی‌های شیائومی/هواوی/اوپو/ویوو: اجازه شروع خودکار تا اتصال بعد از بستن برنامه زنده بماند.', 'On some devices, allow autostart so the connection can stay alive after closing the app.'),
                       style: TextStyle(fontSize: 12),
                     ),
                     trailing: FilledButton.tonal(
                       onPressed: _openAutoStart,
-                      child: const Text('باز کردن'),
+                      child: Text(AppLocale.pick('باز کردن', 'Open')),
                     ),
                   ),
                   ListTile(
@@ -291,11 +292,11 @@ class _BackgroundConnectionScreenState
                           ? Colors.green
                           : Colors.grey,
                     ),
-                    title: const Text('اعلان فوری (پوش)'),
+                    title: Text(AppLocale.pick('اعلان فوری (پوش)', 'Instant push notifications')),
                     subtitle: Text(
                       PushService.isSupported
-                          ? 'فعال است — بیدارسازی فوری حتی در خواب عمیق گوشی.'
-                          : 'در این نصب فعال نیست — اتصال پس‌زمینه جایگزین آن است.',
+                          ? AppLocale.pick('فعال است — بیدارسازی فوری حتی در خواب عمیق گوشی.', 'Active — can wake the phone even during deep sleep.')
+                          : AppLocale.pick('در این نصب فعال نیست — اتصال پس‌زمینه جایگزین آن است.', 'Not enabled in this build — background connection is the fallback.'),
                       style: const TextStyle(fontSize: 12),
                     ),
                     trailing: _testing
@@ -308,14 +309,14 @@ class _BackgroundConnectionScreenState
                             onPressed: PushService.isSupported
                                 ? _testPush
                                 : null,
-                            child: const Text('تست'),
+                            child: Text(AppLocale.pick('تست', 'Test')),
                           ),
                   ),
                   const Divider(),
-                  const Padding(
-                    padding: EdgeInsets.all(8),
+                  Padding(
+                    padding: const EdgeInsets.all(8),
                     child: Text(
-                      'نکته باتری: این اتصال هر ~۲۰ ثانیه یک بررسی سبک انجام می‌دهد؛ مصرف آن در حد نگه‌داشتن اتصال تلگرام است. اعلان فوری (پوش) در صورت فعال بودن، بیدارسازی را سریع‌تر می‌کند؛ بدون آن هم اتصال بالا به‌تنهایی کار می‌کند، پس تحریم و فیلترینگ اثری روی آن ندارد.',
+                      AppLocale.pick('نکته باتری: این اتصال هر ~۲۰ ثانیه یک بررسی سبک انجام می‌دهد؛ مصرف آن در حد نگه‌داشتن اتصال تلگرام است. اعلان فوری (پوش) در صورت فعال بودن، بیدارسازی را سریع‌تر می‌کند؛ بدون آن هم اتصال بالا به‌تنهایی کار می‌کند، پس تحریم و فیلترینگ اثری روی آن ندارد.', 'Battery note: background connection performs a lightweight check about every 20 seconds. Push notifications can wake the app faster when available; background connection works independently.'),
                       style: TextStyle(fontSize: 12, color: Colors.grey),
                     ),
                   ),

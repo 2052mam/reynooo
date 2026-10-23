@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/utils/app_locale.dart';
 import '../../../data/models/user_model.dart';
 import '../../../data/services/api_service.dart';
 import '../../../data/services/device_service.dart';
@@ -45,7 +46,7 @@ class _TwoFactorScreenState extends ConsumerState<TwoFactorScreen> {
     if (_loading) return;
     final code = _codeCtrl.text.trim();
     if (!RegExp(r'^\d{6}$').hasMatch(code)) {
-      setState(() => _error = 'کد ۶ رقمی وارد کنید');
+      setState(() => _error = AppLocale.pick('کد ۶ رقمی وارد کنید', 'Enter the six-digit code.'));
       return;
     }
     setState(() {
@@ -75,7 +76,7 @@ class _TwoFactorScreenState extends ConsumerState<TwoFactorScreen> {
     } on ApiException catch (error) {
       if (mounted) setState(() => _error = error.message);
     } catch (_) {
-      if (mounted) setState(() => _error = 'خطا در ورود');
+      if (mounted) setState(() => _error = AppLocale.pick('خطا در ورود', 'Could not sign in.'));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -88,7 +89,7 @@ class _TwoFactorScreenState extends ConsumerState<TwoFactorScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('تأیید دو مرحله‌ای', style: TextStyle(fontWeight: FontWeight.w700)),
+        title: Text(AppLocale.pick('تأیید دو مرحله‌ای', 'Two-step verification'), style: const TextStyle(fontWeight: FontWeight.w700)),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -125,8 +126,8 @@ class _TwoFactorScreenState extends ConsumerState<TwoFactorScreen> {
               const SizedBox(height: 24),
               Text(
                 widget.isPhoneLogin
-                    ? 'پیامک تأیید شد. کد Google Authenticator را وارد کنید'
-                    : 'کد Google Authenticator را وارد کنید',
+                    ? AppLocale.pick('پیامک تأیید شد. کد Google Authenticator را وارد کنید', 'SMS verified. Enter your Google Authenticator code.')
+                    : AppLocale.pick('کد Google Authenticator را وارد کنید', 'Enter your Google Authenticator code.'),
                 style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
                 textAlign: TextAlign.center,
               ),
@@ -143,7 +144,7 @@ class _TwoFactorScreenState extends ConsumerState<TwoFactorScreen> {
                   fontWeight: FontWeight.w700,
                 ),
                 decoration: InputDecoration(
-                  labelText: 'کد ۶ رقمی',
+                  labelText: AppLocale.pick('کد ۶ رقمی', 'Six-digit code'),
                   counterText: '',
                   hintText: '• • • • • •',
                   hintStyle: TextStyle(
@@ -194,9 +195,9 @@ class _TwoFactorScreenState extends ConsumerState<TwoFactorScreen> {
                             color: Colors.white,
                           ),
                         )
-                      : const Text(
-                          'تأیید',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                      : Text(
+                          AppLocale.pick('تأیید', 'Verify'),
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
                         ),
                 ),
               ),

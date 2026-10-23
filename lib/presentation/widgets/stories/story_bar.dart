@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/utils/app_locale.dart';
 import '../../../data/models/story_model.dart';
 import '../../../data/services/api_service.dart';
 import '../../../data/services/storage_service.dart';
@@ -189,7 +190,7 @@ class _StoryEntry {
     VoidCallback? onView,
   }) =>
       _StoryEntry(
-        label: 'استوری من',
+        label: AppLocale.pick('استوری من', 'My Story'),
         avatarUrl: avatarUrl,
         displayName: displayName,
         isMine: true,

@@ -5,6 +5,7 @@ from app.services.timestamps import utc_iso
 from app import db
 from app.models.chat import Chat, ChatMember
 from app.models.message import Message, MessageHide, MessageStatus, PinnedMessage
+from app.models.media import MediaFile
 from app.models.user import User
 
 
@@ -69,6 +70,7 @@ def _poll_payload(poll, user_id):
 def serialize_messages(messages, user_id, status_override=None):
     if not messages:
         return []
+    messages = list(messages)
 
     # Batch related records: a page of replies must not cause N+1 lookups.
     reply_ids = {m.reply_to_id for m in messages if m.reply_to_id}
@@ -77,6 +79,13 @@ def serialize_messages(messages, user_id, status_override=None):
             Message.id.in_(reply_ids)
         ).all()
     } if reply_ids else {}
+    related_messages = list(messages) + list(originals.values())
+    media_ids = {m.media_id for m in related_messages if m.media_id}
+    media_files = {
+        media.id: media for media in MediaFile.query.filter(
+            MediaFile.id.in_(media_ids)
+        ).all()
+    } if media_ids else {}
     sender_ids = {m.sender_id for m in messages} | {
         m.sender_id for m in originals.values()
     }
@@ -129,6 +138,10 @@ def serialize_messages(messages, user_id, status_override=None):
                 reply = {'id': msg.reply_to_id, 'is_unavailable': True}
             else:
                 author = senders.get(original.sender_id)
+                original_media = media_files.get(original.media_id)
+                original_media_expired = bool(
+                    original.media_id and (original_media is None or original_media.is_deleted)
+                )
                 reply = {
                     'id': original.id,
                     'sender_id': chat.id if broadcast else original.sender_id,
@@ -139,10 +152,11 @@ def serialize_messages(messages, user_id, status_override=None):
                     'is_view_once': original.is_view_once,
                     'is_spoiler': bool(original.is_spoiler),
                     'is_unavailable': False,
-                    # Never include a thumbnail or caption for ephemeral media.
+                    **({'media_expired': True} if original_media_expired else {}),
+                    # Never include a thumbnail or caption for ephemeral or expired media.
                     'media_url': f'/api/v1/media/{original.media_id}'
                     if original.media_id and original.message_type == 'image'
-                    and not original.is_view_once else None,
+                    and not original.is_view_once and not original_media_expired else None,
                 }
 
         message_statuses = statuses.get(msg.id, [])
@@ -181,6 +195,11 @@ def serialize_messages(messages, user_id, status_override=None):
             author = {'id': sender.id, 'display_name': sender.display_name,
                       'username': sender.username}
 
+        media = media_files.get(msg.media_id)
+        media_expired = bool(
+            msg.media_id and (media is None or media.is_deleted)
+            and (not msg.is_view_once or msg.viewed_at is None)
+        )
         result.append({
             'id': msg.id,
             'chat_id': msg.chat_id,
@@ -192,7 +211,8 @@ def serialize_messages(messages, user_id, status_override=None):
             'content': msg.content,
             'media_id': msg.media_id,
             'media_url': f'/api/v1/media/{msg.media_id}'
-            if msg.media_id and not msg.is_view_once else None,
+            if msg.media_id and not msg.is_view_once and not media_expired else None,
+            **({'media_expired': True} if media_expired else {}),
             'reply_to_id': msg.reply_to_id,
             'reply_to': reply,
             'forwarded_from_id': msg.forwarded_from_id,

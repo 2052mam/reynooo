@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+
+import '../../../core/utils/app_locale.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -100,7 +102,7 @@ class _PhoneVerificationScreenState
     if (_loading) return;
     final code = _codeCtrl.text.trim();
     if (!RegExp(r'^\d{6}$').hasMatch(code)) {
-      setState(() => _error = 'کد ۶ رقمی را وارد کنید');
+      setState(() => _error = AppLocale.pick('کد ۶ رقمی را وارد کنید', 'Enter the 6-digit code.'));
       return;
     }
     setState(() {
@@ -129,7 +131,7 @@ class _PhoneVerificationScreenState
     } on ApiException catch (error) {
       if (mounted) setState(() => _error = error.message);
     } catch (_) {
-      if (mounted) setState(() => _error = 'خطا در تأیید کد');
+      if (mounted) setState(() => _error = AppLocale.pick('خطا در تأیید کد', 'Could not verify the code.'));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -165,8 +167,8 @@ class _PhoneVerificationScreenState
         _channel = channel;
         _codeCtrl.clear();
         _message = channel == 'in_app'
-            ? 'کد جدید به دستگاه دیگری که با آن وارد شده‌اید ارسال شد.'
-            : 'کد جدید پیامک شد.';
+            ? AppLocale.pick('کد جدید به دستگاه دیگری که با آن وارد شده‌اید ارسال شد.', 'A new code was sent to another device signed in to your account.')
+            : AppLocale.pick('کد جدید پیامک شد.', 'A new code was sent by SMS.');
       });
       _startCountdown(
         (response['resend_after_seconds'] as num?)?.toInt() ?? widget.resendAfterSeconds,
@@ -177,7 +179,7 @@ class _PhoneVerificationScreenState
       final retryAfter = error.details['retry_after_seconds'];
       if (retryAfter is num) _startCountdown(retryAfter.toInt());
     } catch (_) {
-      if (mounted) setState(() => _error = 'ارسال دوباره کد ممکن نیست');
+      if (mounted) setState(() => _error = AppLocale.pick('ارسال دوباره کد ممکن نیست', 'Could not resend the code.'));
     } finally {
       if (mounted) setState(() => _resending = false);
     }
@@ -191,7 +193,7 @@ class _PhoneVerificationScreenState
     );
     if (sent && mounted) {
       setState(() => _message =
-          'پیام شما برای پشتیبانی ثبت شد. به‌زودی با شما تماس گرفته می‌شود.');
+          AppLocale.pick('پیام شما برای پشتیبانی ثبت شد. به‌زودی با شما تماس گرفته می‌شود.', 'Your message was sent to support. We will get back to you soon.'));
     }
   }
 
@@ -205,7 +207,7 @@ class _PhoneVerificationScreenState
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          registering ? 'تأیید شماره موبایل' : 'ورود با شماره موبایل',
+          registering ? AppLocale.pick('تأیید شماره موبایل', 'Verify mobile number') : AppLocale.pick('ورود با شماره موبایل', 'Sign in with mobile number'),
           style: const TextStyle(fontWeight: FontWeight.w700),
         ),
       ),
@@ -247,8 +249,8 @@ class _PhoneVerificationScreenState
                 const SizedBox(height: 22),
                 Text(
                   registering
-                      ? 'شماره خود را تأیید کنید'
-                      : 'کد ورود را وارد کنید',
+                      ? AppLocale.pick('شماره خود را تأیید کنید', 'Verify your number')
+                      : AppLocale.pick('کد ورود را وارد کنید', 'Enter your sign-in code'),
                   style: const TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.w800,
@@ -259,9 +261,8 @@ class _PhoneVerificationScreenState
                 const SizedBox(height: 10),
                 Text(
                   _inApp
-                      ? 'کد ۶ رقمی را در برنامه‌ی دستگاه دیگری که با شماره '
-                          '${widget.mobileNumber} وارد شده‌اید فرستادیم.'
-                      : 'کد ۶ رقمی به ${widget.mobileNumber} پیامک شد.',
+                      ? AppLocale.pick('کد ۶ رقمی را در برنامه‌ی دستگاه دیگری که با شماره ${widget.mobileNumber} وارد شده‌اید فرستادیم.', 'We sent a 6-digit code to another device signed in with ${widget.mobileNumber}.')
+                      : AppLocale.pick('کد ۶ رقمی به ${widget.mobileNumber} پیامک شد.', 'A 6-digit code was sent by SMS to ${widget.mobileNumber}.'),
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: theme.textTheme.bodySmall?.color,
@@ -287,8 +288,7 @@ class _PhoneVerificationScreenState
                         const SizedBox(width: 10),
                         Expanded(
                           child: Text(
-                            'برنامه روی دستگاه قبلی خود را باز کنید و کد را در بخش '
-                            'اعلان‌ها یا چت سرویس بخوانید.',
+                            AppLocale.pick('برنامه روی دستگاه قبلی خود را باز کنید و کد را در بخش اعلان‌ها یا چت سرویس بخوانید.', 'Open Reyno on your other device and find the code in notifications or the service chat.'),
                             style: TextStyle(
                               fontSize: 12.5,
                               color: theme.textTheme.bodyMedium?.color,
@@ -314,7 +314,7 @@ class _PhoneVerificationScreenState
                     letterSpacing: 14,
                   ),
                   decoration: InputDecoration(
-                    labelText: 'کد تأیید ۶ رقمی',
+                    labelText: AppLocale.pick('کد تأیید ۶ رقمی', '6-digit verification code'),
                     counterText: '',
                     hintText: '• • • • • •',
                     hintStyle: TextStyle(
@@ -382,7 +382,7 @@ class _PhoneVerificationScreenState
                             ),
                           )
                         : Text(
-                            registering ? 'تأیید' : 'ورود',
+                            registering ? AppLocale.pick('تأیید', 'Verify') : AppLocale.pick('ورود', 'Sign in'),
                             style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
                           ),
                   ),
@@ -393,7 +393,7 @@ class _PhoneVerificationScreenState
                     key: const ValueKey('resend-countdown'),
                     padding: const EdgeInsets.symmetric(vertical: 8),
                     child: Text(
-                      'ارسال دوباره کد تا $_countdownLabel دیگر',
+                      AppLocale.pick('ارسال دوباره کد تا $_countdownLabel دیگر', 'Resend code in $_countdownLabel'),
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: theme.textTheme.bodySmall?.color,
@@ -413,8 +413,8 @@ class _PhoneVerificationScreenState
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
                         : const Icon(Icons.refresh_rounded, size: 18),
-                    label: const Text(
-                      'ارسال دوباره کد',
+                    label: Text(
+                      AppLocale.pick('ارسال دوباره کد', 'Resend code'),
                       style: TextStyle(fontWeight: FontWeight.w700),
                     ),
                   ),
@@ -424,7 +424,7 @@ class _PhoneVerificationScreenState
                     key: const ValueKey('force-sms-button'),
                     onPressed: _resending ? null : () => _resend(forceSms: true),
                     icon: const Icon(Icons.sms_outlined, size: 18),
-                    label: const Text('ارسال کد با پیامک'),
+                    label: Text(AppLocale.pick('ارسال کد با پیامک', 'Send code by SMS')),
                   ),
                 ],
                 const SizedBox(height: 12),
@@ -432,7 +432,7 @@ class _PhoneVerificationScreenState
                   child: TextButton.icon(
                     key: const ValueKey('contact-support-button'),
                     icon: const Icon(Icons.support_agent_rounded, size: 18),
-                    label: const Text('تماس با پشتیبانی'),
+                    label: Text(AppLocale.pick('تماس با پشتیبانی', 'Contact support')),
                     onPressed: _contactSupport,
                   ),
                 ),

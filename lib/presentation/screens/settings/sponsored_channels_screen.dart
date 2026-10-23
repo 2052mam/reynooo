@@ -16,6 +16,9 @@ class _SponsoredChannelsScreenState extends ConsumerState<SponsoredChannelsScree
   String? _error;
   final _searchCtrl = TextEditingController();
 
+  String _t(String en, String fa) =>
+      Localizations.localeOf(context).languageCode == 'fa' ? fa : en;
+
   @override
   void initState() {
     super.initState();
@@ -55,7 +58,7 @@ class _SponsoredChannelsScreenState extends ConsumerState<SponsoredChannelsScree
       await api.post("/admin/chats/${channel['id']}/sponsor", {'is_sponsored': sponsor});
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(sponsor ? 'کانال اسپانسر شد' : 'اسپانسر حذف شد')),
+          SnackBar(content: Text(sponsor ? _t('Channel sponsored.', 'کانال اسپانسر شد') : _t('Sponsorship removed.', 'اسپانسر حذف شد'))),
         );
       }
       await _load();
@@ -74,7 +77,7 @@ class _SponsoredChannelsScreenState extends ConsumerState<SponsoredChannelsScree
             ((c['title'] as String?) ?? '').toLowerCase().contains(q) ||
             ((c['username'] as String?) ?? '').toLowerCase().contains(q)).toList();
     return Scaffold(
-      appBar: AppBar(title: const Text('کانال‌های اسپانسرشده (مدیر کل)')),
+      appBar: AppBar(title: Text(_t('Sponsored channels (super admin)', 'کانال‌های اسپانسرشده (مدیر کل)'))),
       body: SafeArea(
         child: _loading
             ? const Center(child: CircularProgressIndicator())
@@ -83,7 +86,7 @@ class _SponsoredChannelsScreenState extends ConsumerState<SponsoredChannelsScree
                     child: Column(mainAxisSize: MainAxisSize.min, children: [
                       Text(_error!, style: const TextStyle(color: Colors.red, fontSize: 12)),
                       const SizedBox(height: 8),
-                      FilledButton(onPressed: _load, child: const Text('تلاش مجدد')),
+                      FilledButton(onPressed: _load, child: Text(_t('Try again', 'تلاش مجدد'))),
                     ]),
                   )
                 : RefreshIndicator(
@@ -98,13 +101,13 @@ class _SponsoredChannelsScreenState extends ConsumerState<SponsoredChannelsScree
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(color: Colors.amber.withValues(alpha: 0.35)),
                           ),
-                          child: const Row(children: [
-                            Icon(Icons.info_outline, color: Colors.amber, size: 20),
-                            SizedBox(width: 8),
+                          child: Row(children: [
+                            const Icon(Icons.info_outline, color: Colors.amber, size: 20),
+                            const SizedBox(width: 8),
                             Expanded(
                               child: Text(
-                                'فقط مدیر کل برنامه می‌تواند کانال‌ها را اسپانسر کند. کانال‌های اسپانسرشده برای همه کاربران نمایش داده می‌شوند.',
-                                style: TextStyle(fontSize: 12),
+                                _t('Only a super admin can sponsor channels. Sponsored channels are shown to everyone.', 'فقط مدیر کل برنامه می‌تواند کانال‌ها را اسپانسر کند. کانال‌های اسپانسرشده برای همه کاربران نمایش داده می‌شوند.'),
+                                style: const TextStyle(fontSize: 12),
                               ),
                             ),
                           ]),
@@ -113,35 +116,35 @@ class _SponsoredChannelsScreenState extends ConsumerState<SponsoredChannelsScree
                         TextField(
                           controller: _searchCtrl,
                           onChanged: (_) => setState(() {}),
-                          decoration: const InputDecoration(
-                            hintText: 'جستجوی کانال...',
+                          decoration: InputDecoration(
+                            hintText: _t('Search channels...', 'جستجوی کانال...'),
                             prefixIcon: Icon(Icons.search),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                            border: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
                             isDense: true,
                           ),
                         ),
                         const SizedBox(height: 8),
-                        Text('اسپانسرشده‌ها (${_sponsored.length})',
+                        Text(_t('Sponsored (${_sponsored.length})', 'اسپانسرشده‌ها (${_sponsored.length})'),
                             style: const TextStyle(fontWeight: FontWeight.w700)),
                         const SizedBox(height: 4),
                         if (_sponsored.isEmpty)
-                          const Text('هنوز کانالی اسپانسر نشده است',
-                              style: TextStyle(color: Colors.grey, fontSize: 12)),
+                          Text(_t('No channels are sponsored yet.', 'هنوز کانالی اسپانسر نشده است'),
+                              style: const TextStyle(color: Colors.grey, fontSize: 12)),
                         ..._sponsored.map((c) => Card(
                               child: ListTile(
                                 leading: const CircleAvatar(child: Icon(Icons.campaign_outlined, size: 18)),
-                                title: Text((c['title'] as String?) ?? 'کانال'),
+                                title: Text((c['title'] as String?) ?? _t('Channel', 'کانال')),
                                 subtitle: Text((c['username'] as String?)?.isNotEmpty == true
                                     ? '@${c['username']}'
-                                    : 'بدون آیدی'),
+                                    : _t('No username', 'بدون آیدی')),
                                 trailing: TextButton(
                                   onPressed: () => _toggle(c, false),
-                                  child: const Text('حذف اسپانسر', style: TextStyle(color: Colors.red)),
+                                  child: Text(_t('Remove sponsorship', 'حذف اسپانسر'), style: const TextStyle(color: Colors.red)),
                                 ),
                               ),
                             )),
                         const SizedBox(height: 12),
-                        Text('همه کانال‌ها (${filtered.length})',
+                        Text(_t('All channels (${filtered.length})', 'همه کانال‌ها (${filtered.length})'),
                             style: const TextStyle(fontWeight: FontWeight.w700)),
                         const SizedBox(height: 4),
                         ...filtered.map((c) {
@@ -149,11 +152,11 @@ class _SponsoredChannelsScreenState extends ConsumerState<SponsoredChannelsScree
                           return Card(
                             child: SwitchListTile(
                               secondary: const CircleAvatar(child: Icon(Icons.campaign_outlined, size: 18)),
-                              title: Text((c['title'] as String?) ?? 'کانال',
+                              title: Text((c['title'] as String?) ?? _t('Channel', 'کانال'),
                                   maxLines: 1, overflow: TextOverflow.ellipsis),
                               subtitle: Text((c['username'] as String?)?.isNotEmpty == true
                                   ? '@${c['username']}'
-                                  : 'بدون آیدی'),
+                                  : _t('No username', 'بدون آیدی')),
                               value: isSponsored,
                               onChanged: (v) => _toggle(c, v),
                             ),

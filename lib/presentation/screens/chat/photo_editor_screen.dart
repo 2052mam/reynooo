@@ -7,6 +7,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:image/image.dart' as img;
 
+import '../../../core/utils/app_locale.dart';
+
 /// Telegram-like internal photo editor: crop (aspect ratios), rotate, flip,
 /// draw (pen colors/sizes), text overlay, then send.
 /// Returns the edited [File] via Navigator.pop.
@@ -68,7 +70,13 @@ class _PhotoEditorScreenState extends State<PhotoEditorScreen> {
   // Non-destructive transform state.
   int _quarterTurns = 0;
   bool _flipH = false;
-  double? _aspectRatio; // null = original/free
+  double? _aspectRatio; // null = original or free crop
+  Rect _cropRect = const Rect.fromLTRB(0, 0, 1, 1);
+  bool _freeCrop = false;
+  bool _cropMode = false;
+  int _cropDragEdges = 0;
+  Offset? _cropDragStart;
+  Rect? _cropDragStartRect;
 
   // Overlays (normalised coordinates).
   final List<_DrawStroke> _strokes = [];
@@ -120,7 +128,7 @@ class _PhotoEditorScreenState extends State<PhotoEditorScreen> {
       if (mounted) {
         setState(() {
           _loading = false;
-          _loadError = 'باز کردن تصویر ممکن نشد';
+          _loadError = AppLocale.pick('باز کردن تصویر ممکن نشد', 'Could not open image');
         });
       }
     }
@@ -128,7 +136,7 @@ class _PhotoEditorScreenState extends State<PhotoEditorScreen> {
 
   bool get _isRotatedSideways => _quarterTurns.isOdd;
 
-  /// Size of the visible (cropped + rotated) image in source pixels.
+  /// Dimensions of the selected crop in the rotated image's source pixels.
   Size get _croppedSourceSize {
     final image = _image;
     if (image == null) return Size.zero;
@@ -136,38 +144,92 @@ class _PhotoEditorScreenState extends State<PhotoEditorScreen> {
         _isRotatedSideways ? image.height.toDouble() : image.width.toDouble();
     final rotatedH =
         _isRotatedSideways ? image.width.toDouble() : image.height.toDouble();
-    final ratio = _aspectRatio;
-    if (ratio == null) return Size(rotatedW, rotatedH);
-    var w = rotatedW;
-    var h = rotatedH;
-    if (w / h > ratio) {
-      w = h * ratio;
-    } else {
-      h = w / ratio;
-    }
-    return Size(w, h);
+    return Size(rotatedW * _cropRect.width, rotatedH * _cropRect.height);
   }
 
-  /// Destination rect (centred on the origin, in the rotated coordinate
-  /// space) that makes the source image *cover* [target] without distortion.
-  Rect _coverRect(Size target) {
-    final image = _image!;
-    // In the rotated frame the visible box swaps its axes.
-    final boxW = _isRotatedSideways ? target.height : target.width;
-    final boxH = _isRotatedSideways ? target.width : target.height;
-    final scale = math.max(boxW / image.width, boxH / image.height);
+  double get _rotatedImageWidth => _isRotatedSideways
+      ? _image!.height.toDouble()
+      : _image!.width.toDouble();
+  double get _rotatedImageHeight => _isRotatedSideways
+      ? _image!.width.toDouble()
+      : _image!.height.toDouble();
+
+  Rect _aspectCrop(double ratio) {
+    final fullW = _rotatedImageWidth;
+    final fullH = _rotatedImageHeight;
+    final fullRatio = fullW / fullH;
+    final cropW = fullRatio > ratio ? ratio / fullRatio : 1.0;
+    final cropH = fullRatio > ratio ? 1.0 : fullRatio / ratio;
     return Rect.fromCenter(
-      center: Offset.zero,
-      width: image.width * scale,
-      height: image.height * scale,
+      center: const Offset(0.5, 0.5),
+      width: cropW,
+      height: cropH,
     );
   }
 
-  void _rotate() => setState(() => _quarterTurns = (_quarterTurns + 1) % 4);
+  void _rotate() => setState(() {
+        final crop = _cropRect;
+        _cropRect = Rect.fromLTRB(
+          1 - crop.bottom,
+          crop.left,
+          1 - crop.top,
+          crop.right,
+        );
+        if (_aspectRatio != null) _aspectRatio = 1 / _aspectRatio!;
+        _quarterTurns = (_quarterTurns + 1) % 4;
+      });
 
-  void _flip() => setState(() => _flipH = !_flipH);
+  void _flip() => setState(() {
+        final crop = _cropRect;
+        if (_isRotatedSideways) {
+          _cropRect = Rect.fromLTRB(
+            crop.left,
+            1 - crop.bottom,
+            crop.right,
+            1 - crop.top,
+          );
+        } else {
+          _cropRect = Rect.fromLTRB(
+            1 - crop.right,
+            crop.top,
+            1 - crop.left,
+            crop.bottom,
+          );
+        }
+        _flipH = !_flipH;
+      });
 
-  void _setAspect(double? ratio) => setState(() => _aspectRatio = ratio);
+  void _setAspect(double? ratio) {
+    setState(() {
+      _aspectRatio = ratio;
+      _freeCrop = false;
+      _cropRect = ratio == null
+          ? const Rect.fromLTRB(0, 0, 1, 1)
+          : _aspectCrop(ratio);
+      _cropMode = ratio != null;
+    });
+  }
+
+  void _setFreeCrop() {
+    setState(() {
+      _aspectRatio = null;
+      _freeCrop = true;
+      if (_cropRect.width >= 0.999 && _cropRect.height >= 0.999) {
+        _cropRect = const Rect.fromLTRB(0.05, 0.05, 0.95, 0.95);
+      }
+      _cropMode = true;
+    });
+  }
+
+  void _toggleCropMode() {
+    if (_cropMode) {
+      setState(() => _cropMode = false);
+    } else if (_freeCrop || _aspectRatio != null) {
+      setState(() => _cropMode = true);
+    } else {
+      _setFreeCrop();
+    }
+  }
 
   void _undo() {
     setState(() {
@@ -200,6 +262,109 @@ class _PhotoEditorScreenState extends State<PhotoEditorScreen> {
       w,
       h,
     );
+  }
+
+  Rect _fullImageRect(Size canvas) {
+    if (_image == null || canvas.isEmpty) return Rect.zero;
+    final scale = math.min(
+      canvas.width / _rotatedImageWidth,
+      canvas.height / _rotatedImageHeight,
+    );
+    final width = _rotatedImageWidth * scale;
+    final height = _rotatedImageHeight * scale;
+    return Rect.fromLTWH(
+      (canvas.width - width) / 2,
+      (canvas.height - height) / 2,
+      width,
+      height,
+    );
+  }
+
+  Rect _cropRectOnCanvas(Size canvas) {
+    final imageRect = _fullImageRect(canvas);
+    if (imageRect.isEmpty) return Rect.zero;
+    return Rect.fromLTRB(
+      imageRect.left + _cropRect.left * imageRect.width,
+      imageRect.top + _cropRect.top * imageRect.height,
+      imageRect.left + _cropRect.right * imageRect.width,
+      imageRect.top + _cropRect.bottom * imageRect.height,
+    );
+  }
+
+  void _onCropPanStart(DragStartDetails details) {
+    final selection = _cropRectOnCanvas(_canvasSize());
+    if (selection.isEmpty || !selection.inflate(36).contains(details.localPosition)) {
+      return;
+    }
+
+    var edges = 0;
+    if (_freeCrop) {
+      const handleRadius = 32.0;
+      final handles = <(Offset, int)>[
+        (selection.topLeft, 1 | 2),
+        (selection.topRight, 4 | 2),
+        (selection.bottomLeft, 1 | 8),
+        (selection.bottomRight, 4 | 8),
+      ];
+      for (final (point, candidate) in handles) {
+        if ((point - details.localPosition).distance <= handleRadius) {
+          edges = candidate;
+          break;
+        }
+      }
+    }
+    _cropDragEdges = edges;
+    _cropDragStart = details.localPosition;
+    _cropDragStartRect = _cropRect;
+  }
+
+  void _onCropPanUpdate(DragUpdateDetails details) {
+    final start = _cropDragStart;
+    final startRect = _cropDragStartRect;
+    final imageRect = _fullImageRect(_canvasSize());
+    if (start == null || startRect == null || imageRect.isEmpty) return;
+    final delta = details.localPosition - start;
+    final dx = delta.dx / imageRect.width;
+    final dy = delta.dy / imageRect.height;
+
+    Rect next;
+    if (_cropDragEdges == 0) {
+      final left =
+          (startRect.left + dx).clamp(0.0, 1.0 - startRect.width).toDouble();
+      final top =
+          (startRect.top + dy).clamp(0.0, 1.0 - startRect.height).toDouble();
+      next = Rect.fromLTWH(left, top, startRect.width, startRect.height);
+    } else {
+      var left = startRect.left;
+      var top = startRect.top;
+      var right = startRect.right;
+      var bottom = startRect.bottom;
+      const minimumSide = 0.06;
+      if ((_cropDragEdges & 1) != 0) {
+        left =
+            (startRect.left + dx).clamp(0.0, right - minimumSide).toDouble();
+      }
+      if ((_cropDragEdges & 2) != 0) {
+        top =
+            (startRect.top + dy).clamp(0.0, bottom - minimumSide).toDouble();
+      }
+      if ((_cropDragEdges & 4) != 0) {
+        right =
+            (startRect.right + dx).clamp(left + minimumSide, 1.0).toDouble();
+      }
+      if ((_cropDragEdges & 8) != 0) {
+        bottom =
+            (startRect.bottom + dy).clamp(top + minimumSide, 1.0).toDouble();
+      }
+      next = Rect.fromLTRB(left, top, right, bottom);
+    }
+    setState(() => _cropRect = next);
+  }
+
+  void _endCropPan() {
+    _cropDragStart = null;
+    _cropDragStartRect = null;
+    _cropDragEdges = 0;
   }
 
   Offset? _toNormalised(Offset local, Size canvas) {
@@ -243,6 +408,10 @@ class _PhotoEditorScreenState extends State<PhotoEditorScreen> {
   }
 
   void _onPanStart(DragStartDetails d) {
+    if (_cropMode) {
+      _onCropPanStart(d);
+      return;
+    }
     final canvas = _canvasSize();
     final text = _hitTestText(d.localPosition, canvas);
     if (text != null) {
@@ -265,6 +434,10 @@ class _PhotoEditorScreenState extends State<PhotoEditorScreen> {
   }
 
   void _onPanUpdate(DragUpdateDetails d) {
+    if (_cropMode) {
+      _onCropPanUpdate(d);
+      return;
+    }
     final canvas = _canvasSize();
     final dragging = _draggingText;
     if (dragging != null) {
@@ -288,6 +461,10 @@ class _PhotoEditorScreenState extends State<PhotoEditorScreen> {
   }
 
   void _onPanEnd(DragEndDetails d) {
+    if (_cropMode) {
+      _endCropPan();
+      return;
+    }
     if (_draggingText != null) {
       _draggingText = null;
       return;
@@ -307,14 +484,16 @@ class _PhotoEditorScreenState extends State<PhotoEditorScreen> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setD) => AlertDialog(
-          title: Text(existing == null ? 'متن روی عکس' : 'ویرایش متن'),
+          title: Text(existing == null
+              ? AppLocale.pick('متن روی عکس', 'Text on photo')
+              : AppLocale.pick('ویرایش متن', 'Edit text')),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: ctrl,
                 autofocus: true,
-                decoration: const InputDecoration(hintText: 'متن...'),
+                decoration: InputDecoration(hintText: AppLocale.pick('متن...', 'Enter text...')),
               ),
               const SizedBox(height: 12),
               Wrap(
@@ -343,18 +522,21 @@ class _PhotoEditorScreenState extends State<PhotoEditorScreen> {
             if (existing != null)
               TextButton(
                 onPressed: () => Navigator.pop(ctx, '__delete__'),
-                child: const Text('حذف', style: TextStyle(color: Colors.red)),
+                child: Text(AppLocale.pick('حذف', 'Delete'), style: const TextStyle(color: Colors.red)),
               ),
             TextButton(
-                onPressed: () => Navigator.pop(ctx), child: const Text('لغو')),
+                onPressed: () => Navigator.pop(ctx), child: Text(AppLocale.pick('لغو', 'Cancel'))),
             FilledButton(
               onPressed: () => Navigator.pop(ctx, ctrl.text.trim()),
-              child: Text(existing == null ? 'افزودن' : 'ذخیره'),
+              child: Text(existing == null
+                  ? AppLocale.pick('افزودن', 'Add')
+                  : AppLocale.pick('ذخیره', 'Save')),
             ),
           ],
         ),
       ),
     );
+    ctrl.dispose();
     if (result == null || !mounted) return;
     setState(() {
       if (result == '__delete__') {
@@ -389,17 +571,26 @@ class _PhotoEditorScreenState extends State<PhotoEditorScreen> {
         Rect.fromLTWH(0, 0, target.width, target.height));
 
     canvas.save();
-    // Apply flip + rotation about the centre of the output.
-    canvas.translate(target.width / 2, target.height / 2);
+    // Move the selected source area to the center of the output, then apply
+    // the same flip/rotation used by the live preview.
+    final cropOffset = Offset(
+      (_cropRect.center.dx - 0.5) * _rotatedImageWidth,
+      (_cropRect.center.dy - 0.5) * _rotatedImageHeight,
+    );
+    canvas.translate(
+      target.width / 2 - cropOffset.dx,
+      target.height / 2 - cropOffset.dy,
+    );
     if (_flipH) canvas.scale(-1, 1);
     canvas.rotate(_quarterTurns * math.pi / 2);
-    // Cover the target rect while preserving the picture's aspect ratio, so a
-    // crop actually crops instead of squashing the image.
-    final dst = _coverRect(target);
     canvas.drawImageRect(
       image,
       Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble()),
-      dst,
+      Rect.fromCenter(
+        center: Offset.zero,
+        width: image.width.toDouble(),
+        height: image.height.toDouble(),
+      ),
       Paint()..filterQuality = FilterQuality.high,
     );
     canvas.restore();
@@ -461,7 +652,7 @@ class _PhotoEditorScreenState extends State<PhotoEditorScreen> {
             shadows: const [Shadow(color: Colors.black, blurRadius: 6)],
           ),
         ),
-        textDirection: TextDirection.rtl,
+        textDirection: AppLocale.isFa ? TextDirection.rtl : TextDirection.ltr,
         textAlign: TextAlign.center,
       )..layout(maxWidth: size.width * 0.9);
       painter.paint(
@@ -492,7 +683,7 @@ class _PhotoEditorScreenState extends State<PhotoEditorScreen> {
       if (mounted) {
         setState(() => _saving = false);
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('ذخیره ناموفق: $e')));
+            .showSnackBar(SnackBar(content: Text(AppLocale.pick('ذخیره ناموفق: $e', 'Save failed: $e'))));
       }
     }
   }
@@ -502,22 +693,24 @@ class _PhotoEditorScreenState extends State<PhotoEditorScreen> {
         _texts.isEmpty &&
         _quarterTurns == 0 &&
         !_flipH &&
+        !_freeCrop &&
+        _cropRect == const Rect.fromLTRB(0, 0, 1, 1) &&
         _aspectRatio == null) {
       return true;
     }
     final leave = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('لغو ویرایش'),
-        content: const Text('تغییرات ذخیره نشده از بین می‌رود. مطمئن هستید؟'),
+        title: Text(AppLocale.pick('لغو ویرایش', 'Discard edits')),
+        content: Text(AppLocale.pick('تغییرات ذخیره نشده از بین می‌رود. مطمئن هستید؟', 'Your unsaved changes will be lost. Are you sure?')),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('ادامه ویرایش')),
+              child: Text(AppLocale.pick('ادامه ویرایش', 'Continue editing'))),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('لغو ویرایش'),
+            child: Text(AppLocale.pick('لغو ویرایش', 'Discard edits')),
           ),
         ],
       ),
@@ -535,35 +728,40 @@ class _PhotoEditorScreenState extends State<PhotoEditorScreen> {
         if (await _confirmDiscard() && mounted) Navigator.pop(context);
       },
       child: Scaffold(
-        backgroundColor: Colors.black,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         appBar: AppBar(
-          backgroundColor: Colors.black,
-          foregroundColor: Colors.white,
-          title: const Text('ویرایش عکس'),
+          title: Text(AppLocale.pick('ویرایش عکس', 'Edit photo')),
           actions: [
             IconButton(
-              tooltip: 'چرخش',
+              tooltip: _cropMode
+                  ? AppLocale.pick('پایان برش', 'Done cropping')
+                  : AppLocale.pick('برش آزاد', 'Free crop'),
+              icon: Icon(_cropMode ? Icons.crop_rounded : Icons.crop_free_rounded),
+              onPressed: image == null ? null : _toggleCropMode,
+            ),
+            IconButton(
+              tooltip: AppLocale.pick('چرخش', 'Rotate'),
               icon: const Icon(Icons.rotate_right),
               onPressed: image == null ? null : _rotate,
             ),
             IconButton(
-              tooltip: 'آینه',
+              tooltip: AppLocale.pick('آینه', 'Flip'),
               icon: const Icon(Icons.flip),
               onPressed: image == null ? null : _flip,
             ),
             IconButton(
-              tooltip: 'متن',
+              tooltip: AppLocale.pick('متن', 'Text'),
               icon: const Icon(Icons.text_fields),
               onPressed: image == null ? null : () => _addOrEditText(),
             ),
             IconButton(
-              tooltip: 'واگرد',
+              tooltip: AppLocale.pick('واگرد', 'Undo'),
               icon: const Icon(Icons.undo),
               onPressed:
                   (_strokes.isEmpty && _texts.isEmpty) ? null : _undo,
             ),
             IconButton(
-              tooltip: 'ارسال',
+              tooltip: AppLocale.pick('ارسال', 'Send'),
               icon: _saving
                   ? const SizedBox(
                       width: 18,
@@ -577,22 +775,22 @@ class _PhotoEditorScreenState extends State<PhotoEditorScreen> {
           ],
         ),
         body: _loading
-            ? const Center(child: CircularProgressIndicator(color: Colors.white))
+            ? const Center(child: CircularProgressIndicator())
             : _loadError != null || image == null
                 ? Center(
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.broken_image_outlined,
-                            color: Colors.white38, size: 48),
+                        Icon(Icons.broken_image_outlined,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant, size: 48),
                         const SizedBox(height: 8),
-                        Text(_loadError ?? 'تصویر در دسترس نیست',
-                            style: const TextStyle(color: Colors.white70)),
+                        Text(_loadError ?? AppLocale.pick('تصویر در دسترس نیست', 'Image unavailable'),
+                            style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
                         const SizedBox(height: 12),
                         FilledButton(
                           onPressed: () =>
                               Navigator.pop(context, widget.imageFile),
-                          child: const Text('ارسال بدون ویرایش'),
+                          child: Text(AppLocale.pick('ارسال بدون ویرایش', 'Send original')),
                         ),
                       ],
                     ),
@@ -604,12 +802,13 @@ class _PhotoEditorScreenState extends State<PhotoEditorScreen> {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 12, vertical: 8),
                         child: Row(children: [
-                          _cropChip('اصلی', null),
-                          _cropChip('۱:۱', 1.0),
-                          _cropChip('۴:۳', 4 / 3),
-                          _cropChip('۳:۴', 3 / 4),
-                          _cropChip('۱۶:۹', 16 / 9),
-                          _cropChip('۹:۱۶', 9 / 16),
+                          _cropChip(AppLocale.pick('آزاد', 'Free'), null, free: true),
+                          _cropChip(AppLocale.pick('اصلی', 'Original'), null),
+                          _cropChip(AppLocale.pick('۱:۱', '1:1'), 1.0),
+                          _cropChip(AppLocale.pick('۴:۳', '4:3'), 4 / 3),
+                          _cropChip(AppLocale.pick('۳:۴', '3:4'), 3 / 4),
+                          _cropChip(AppLocale.pick('۱۶:۹', '16:9'), 16 / 9),
+                          _cropChip(AppLocale.pick('۹:۱۶', '9:16'), 9 / 16),
                         ]),
                       ),
                       Expanded(
@@ -621,6 +820,7 @@ class _PhotoEditorScreenState extends State<PhotoEditorScreen> {
                             onPanUpdate: _onPanUpdate,
                             onPanEnd: _onPanEnd,
                             onTapUp: (d) {
+                              if (_cropMode) return;
                               final t =
                                   _hitTestText(d.localPosition, _canvasSize());
                               if (t != null) _addOrEditText(t);
@@ -633,6 +833,9 @@ class _PhotoEditorScreenState extends State<PhotoEditorScreen> {
                                 quarterTurns: _quarterTurns,
                                 flipH: _flipH,
                                 sourceSize: _croppedSourceSize,
+                                cropRect: _cropRect,
+                                cropMode: _cropMode,
+                                freeCrop: _freeCrop,
                                 strokes: [
                                   ..._strokes,
                                   if (_activeStroke != null) _activeStroke!
@@ -652,7 +855,7 @@ class _PhotoEditorScreenState extends State<PhotoEditorScreen> {
 
   Widget _buildToolbar() {
     return Container(
-      color: Colors.black,
+      color: Theme.of(context).colorScheme.surface,
       padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -661,15 +864,15 @@ class _PhotoEditorScreenState extends State<PhotoEditorScreen> {
             children: [
               IconButton(
                 tooltip: _tool == _EditorTool.draw
-                    ? 'حالت جابه‌جایی متن'
-                    : 'حالت نقاشی',
+                    ? AppLocale.pick('حالت جابه‌جایی متن', 'Move text')
+                    : AppLocale.pick('حالت نقاشی', 'Draw'),
                 icon: Icon(
                   _tool == _EditorTool.draw
                       ? Icons.brush
                       : Icons.pan_tool_outlined,
                   color: _tool == _EditorTool.draw
-                      ? Colors.greenAccent
-                      : Colors.white,
+                      ? Theme.of(context).colorScheme.primary
+                      : Theme.of(context).colorScheme.onSurface,
                 ),
                 onPressed: () => setState(() => _tool =
                     _tool == _EditorTool.draw
@@ -696,8 +899,8 @@ class _PhotoEditorScreenState extends State<PhotoEditorScreen> {
                                   shape: BoxShape.circle,
                                   border: Border.all(
                                     color: _penColor == c
-                                        ? Colors.blue
-                                        : Colors.white30,
+                                        ? Theme.of(context).colorScheme.primary
+                                        : Theme.of(context).colorScheme.outline,
                                     width: _penColor == c ? 3 : 1,
                                   ),
                                 ),
@@ -708,16 +911,16 @@ class _PhotoEditorScreenState extends State<PhotoEditorScreen> {
                 ),
               ),
               IconButton(
-                tooltip: 'پاک کردن همه',
-                icon: const Icon(Icons.delete_outline, color: Colors.white70),
+                tooltip: AppLocale.pick('پاک کردن همه', 'Clear all'),
+                icon: Icon(Icons.delete_outline, color: Theme.of(context).colorScheme.onSurfaceVariant),
                 onPressed:
                     (_strokes.isEmpty && _texts.isEmpty) ? null : _clearAll,
               ),
             ],
           ),
           Row(children: [
-            const Text('ضخامت',
-                style: TextStyle(color: Colors.white70, fontSize: 12)),
+            Text(AppLocale.pick('ضخامت', 'Brush size'),
+                style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12)),
             Expanded(
               child: Slider(
                 value: _penWidth,
@@ -744,18 +947,21 @@ class _PhotoEditorScreenState extends State<PhotoEditorScreen> {
     );
   }
 
-  Widget _cropChip(String label, double? ratio) {
-    final selected = _aspectRatio == ratio;
+  Widget _cropChip(String label, double? ratio, {bool free = false}) {
+    final selected = free
+        ? _freeCrop
+        : !_freeCrop && _aspectRatio == ratio && (ratio != null || !_cropMode);
     return Padding(
       padding: const EdgeInsets.only(right: 8),
       child: ChoiceChip(
         label: Text(label,
-            style:
-                TextStyle(color: selected ? Colors.white : Colors.white70)),
+            style: TextStyle(color: selected
+                ? Theme.of(context).colorScheme.onPrimary
+                : Theme.of(context).colorScheme.onSurface)),
         selected: selected,
-        selectedColor: Colors.blue,
-        backgroundColor: Colors.white10,
-        onSelected: (_) => _setAspect(ratio),
+        selectedColor: Theme.of(context).colorScheme.primary,
+        backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+        onSelected: (_) => free ? _setFreeCrop() : _setAspect(ratio),
       ),
     );
   }
@@ -768,6 +974,9 @@ class _EditorPainter extends CustomPainter {
   final int quarterTurns;
   final bool flipH;
   final Size sourceSize;
+  final Rect cropRect;
+  final bool cropMode;
+  final bool freeCrop;
   final List<_DrawStroke> strokes;
   final List<_TextOverlay> texts;
 
@@ -776,6 +985,9 @@ class _EditorPainter extends CustomPainter {
     required this.quarterTurns,
     required this.flipH,
     required this.sourceSize,
+    required this.cropRect,
+    required this.cropMode,
+    required this.freeCrop,
     required this.strokes,
     required this.texts,
   });
@@ -783,34 +995,42 @@ class _EditorPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     if (sourceSize.isEmpty || size.isEmpty) return;
+    final sideways = quarterTurns.isOdd;
+    final fullWidth = sideways ? image.height.toDouble() : image.width.toDouble();
+    final fullHeight = sideways ? image.width.toDouble() : image.height.toDouble();
+
+    if (cropMode) {
+      _paintCropSelection(canvas, size, fullWidth, fullHeight);
+      return;
+    }
+
     final scale = math.min(
         size.width / sourceSize.width, size.height / sourceSize.height);
     final drawn = Size(sourceSize.width * scale, sourceSize.height * scale);
     final origin = Offset(
         (size.width - drawn.width) / 2, (size.height - drawn.height) / 2);
+    final cropOffset = Offset(
+      (cropRect.center.dx - 0.5) * fullWidth * scale,
+      (cropRect.center.dy - 0.5) * fullHeight * scale,
+    );
 
     canvas.save();
     canvas.translate(origin.dx, origin.dy);
     canvas.clipRect(Rect.fromLTWH(0, 0, drawn.width, drawn.height));
-
-    // Image with transforms.
     canvas.save();
-    canvas.translate(drawn.width / 2, drawn.height / 2);
+    canvas.translate(
+      drawn.width / 2 - cropOffset.dx,
+      drawn.height / 2 - cropOffset.dy,
+    );
     if (flipH) canvas.scale(-1, 1);
     canvas.rotate(quarterTurns * math.pi / 2);
-    final sideways = quarterTurns.isOdd;
-    // Cover (never stretch) — must match _renderResult exactly, otherwise the
-    // exported picture would not equal the preview.
-    final boxW = sideways ? drawn.height : drawn.width;
-    final boxH = sideways ? drawn.width : drawn.height;
-    final cover = math.max(boxW / image.width, boxH / image.height);
     canvas.drawImageRect(
       image,
       Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble()),
       Rect.fromCenter(
         center: Offset.zero,
-        width: image.width * cover,
-        height: image.height * cover,
+        width: image.width * scale,
+        height: image.height * scale,
       ),
       Paint()..filterQuality = FilterQuality.medium,
     );
@@ -856,7 +1076,7 @@ class _EditorPainter extends CustomPainter {
             shadows: const [Shadow(color: Colors.black, blurRadius: 6)],
           ),
         ),
-        textDirection: TextDirection.rtl,
+        textDirection: AppLocale.isFa ? TextDirection.rtl : TextDirection.ltr,
         textAlign: TextAlign.center,
       )..layout(maxWidth: drawn.width * 0.9);
       painter.paint(
@@ -871,12 +1091,88 @@ class _EditorPainter extends CustomPainter {
     canvas.restore();
   }
 
+  void _paintCropSelection(
+    Canvas canvas,
+    Size size,
+    double fullWidth,
+    double fullHeight,
+  ) {
+    final scale = math.min(size.width / fullWidth, size.height / fullHeight);
+    final imageWidth = fullWidth * scale;
+    final imageHeight = fullHeight * scale;
+    final imageRect = Rect.fromLTWH(
+      (size.width - imageWidth) / 2,
+      (size.height - imageHeight) / 2,
+      imageWidth,
+      imageHeight,
+    );
+
+    canvas.save();
+    canvas.translate(size.width / 2, size.height / 2);
+    if (flipH) canvas.scale(-1, 1);
+    canvas.rotate(quarterTurns * math.pi / 2);
+    canvas.drawImageRect(
+      image,
+      Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble()),
+      Rect.fromCenter(
+        center: Offset.zero,
+        width: image.width * scale,
+        height: image.height * scale,
+      ),
+      Paint()..filterQuality = FilterQuality.medium,
+    );
+    canvas.restore();
+
+    final selection = Rect.fromLTRB(
+      imageRect.left + cropRect.left * imageRect.width,
+      imageRect.top + cropRect.top * imageRect.height,
+      imageRect.left + cropRect.right * imageRect.width,
+      imageRect.top + cropRect.bottom * imageRect.height,
+    );
+    final shade = Paint()..color = const Color(0x99000000);
+    canvas
+      ..drawRect(Rect.fromLTRB(0, 0, size.width, selection.top), shade)
+      ..drawRect(
+        Rect.fromLTRB(0, selection.top, selection.left, selection.bottom),
+        shade,
+      )
+      ..drawRect(
+        Rect.fromLTRB(selection.right, selection.top, size.width, selection.bottom),
+        shade,
+      )
+      ..drawRect(
+        Rect.fromLTRB(0, selection.bottom, size.width, size.height),
+        shade,
+      );
+    canvas.drawRect(
+      selection,
+      Paint()
+        ..color = Colors.white
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2,
+    );
+    if (freeCrop) {
+      final handlePaint = Paint()..color = Colors.white;
+      for (final point in <Offset>[
+        selection.topLeft,
+        selection.topRight,
+        selection.bottomLeft,
+        selection.bottomRight,
+      ]) {
+        canvas.drawCircle(point, 7, handlePaint);
+      }
+    }
+  }
+
   @override
   bool shouldRepaint(covariant _EditorPainter old) =>
       old.image != image ||
       old.quarterTurns != quarterTurns ||
       old.flipH != flipH ||
       old.sourceSize != sourceSize ||
+      old.cropRect != cropRect ||
+      old.cropMode != cropMode ||
+      old.freeCrop != freeCrop ||
       old.strokes != strokes ||
       old.texts != texts ||
       old.strokes.length != strokes.length ||

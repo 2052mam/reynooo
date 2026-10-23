@@ -22,6 +22,9 @@ class LocationMapViewerScreen extends StatefulWidget {
 class _LocationMapViewerScreenState extends State<LocationMapViewerScreen> {
   bool _openingExternalMap = false;
 
+  String _t(String en, String fa) =>
+      Localizations.localeOf(context).languageCode == 'fa' ? fa : en;
+
   MessageModel get _message => widget.message;
 
   GeoPoint get _point => GeoPoint(
@@ -42,7 +45,7 @@ class _LocationMapViewerScreenState extends State<LocationMapViewerScreen> {
     setState(() => _openingExternalMap = false);
     if (!opened) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('هیچ برنامه‌ای برای باز کردن نقشه پیدا نشد')),
+        SnackBar(content: Text(_t('No map app was found.', 'هیچ برنامه‌ای برای باز کردن نقشه پیدا نشد'))),
       );
     }
   }
@@ -82,7 +85,7 @@ class _LocationMapViewerScreenState extends State<LocationMapViewerScreen> {
                 child: Row(
                   children: [
                     _CircleButton(
-                      tooltip: 'بستن',
+                      tooltip: _t('Close', 'بستن'),
                       icon: Icons.close,
                       onPressed: () => Navigator.of(context).pop(),
                     ),
@@ -99,7 +102,7 @@ class _LocationMapViewerScreenState extends State<LocationMapViewerScreen> {
                             vertical: 9,
                           ),
                           child: Text(
-                            isLive ? 'موقعیت زنده' : 'موقعیت مکانی',
+                            isLive ? _t('Live location', 'موقعیت زنده') : _t('Location', 'موقعیت مکانی'),
                             style: const TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.w700,
@@ -155,7 +158,7 @@ class _LocationMapViewerScreenState extends State<LocationMapViewerScreen> {
                               Text(
                                 title?.isNotEmpty == true
                                     ? title!
-                                    : (isLive ? 'لوکیشن زنده' : 'لوکیشن'),
+                                    : (isLive ? _t('Live location', 'لوکیشن زنده') : _t('Location', 'لوکیشن')),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(
@@ -187,7 +190,7 @@ class _LocationMapViewerScreenState extends State<LocationMapViewerScreen> {
                               child: CircularProgressIndicator(strokeWidth: 2),
                             )
                           : const Icon(Icons.open_in_new),
-                      label: const Text('باز کردن در برنامه نقشه'),
+                      label: Text(_t('Open in maps app', 'باز کردن در برنامه نقشه')),
                     ),
                   ],
                 ),

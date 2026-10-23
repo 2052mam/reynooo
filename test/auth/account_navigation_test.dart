@@ -32,6 +32,12 @@ void main() {
         final client = MockClient((request) async {
           requests.add(request);
           final path = request.url.path;
+          if (path.endsWith('/auth/methods')) {
+            return jsonResponse({
+              'registration_method': 'sms',
+              'login_priority': 'sms',
+            });
+          }
           if (path.endsWith('/chats/')) return jsonResponse({'chats': []});
           if (path.endsWith('/users/online-status') || path.endsWith('/auth/logout')) {
             return jsonResponse({'ok': true});
@@ -80,7 +86,7 @@ void main() {
           await tester.pumpWidget(
             ProviderScope(
               overrides: [authNotifierProvider.overrideWith((ref) => auth)],
-              child: const SecureMessengerApp(),
+              child: const ReynoApp(),
             ),
           );
           await tester.pumpAndSettle();
@@ -99,16 +105,16 @@ void main() {
           expect((await AccountService.list()).single.userId, 'alice');
 
           await tester.enterText(find.byType(TextFormField).single, '+989121234567');
-          await tester.tap(find.text('ادامه'));
+          await tester.tap(find.text('Continue'));
           await tester.pumpAndSettle();
           expect(find.byType(PhoneVerificationScreen), findsOneWidget);
           await tester.enterText(find.byType(TextField).single, '123456');
-          await tester.tap(find.text('ورود'));
+          await tester.tap(find.text('Sign in'));
           await tester.pumpAndSettle();
           if (requiresTotp) {
             expect(find.byType(TwoFactorScreen), findsOneWidget);
             await tester.enterText(find.byType(TextField).single, '123456');
-            await tester.tap(find.text('تأیید'));
+            await tester.tap(find.text('Verify'));
           }
           await tester.pumpAndSettle();
 
@@ -146,7 +152,7 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [authNotifierProvider.overrideWith((ref) => auth)],
-          child: const SecureMessengerApp(),
+          child: const ReynoApp(),
         ),
       );
       await tester.pumpAndSettle();

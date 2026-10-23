@@ -1,8 +1,11 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
+
+import '../../../core/utils/app_locale.dart';
 
 /// Result of editing a video: the original file plus edit instructions.
 /// Trimming is applied server-side (ffmpeg) at upload; [muted] is enforced
@@ -12,15 +15,24 @@ class EditedVideo {
   final int startMs;
   final int endMs; // -1 = until the end
   final bool muted;
+  final double? cropX;
+  final double? cropY;
+  final double? cropWidth;
+  final double? cropHeight;
   const EditedVideo({
     required this.file,
     this.startMs = 0,
     this.endMs = -1,
     this.muted = false,
+    this.cropX,
+    this.cropY,
+    this.cropWidth,
+    this.cropHeight,
   });
 
   bool get isTrimmed => startMs > 0 || endMs >= 0;
-  bool get isEdited => isTrimmed || muted;
+  bool get isCropped => cropWidth != null && cropHeight != null;
+  bool get isEdited => isTrimmed || isCropped || muted;
 }
 
 /// Telegram-like internal video editor: preview, trim start/end, mute toggle.
@@ -55,6 +67,32 @@ class _VideoEditorScreenState extends State<VideoEditorScreen> {
 
   bool _scrubbing = false;
   Timer? _seekDebounce;
+
+  Rect _crop = const Rect.fromLTRB(0, 0, 1, 1);
+  String _cropMode = 'Free';
+  String? _cropDragMode;
+  Offset _cropDragOrigin = Offset.zero;
+  Rect _cropDragStart = const Rect.fromLTRB(0, 0, 1, 1);
+
+  double get _videoAspect {
+    final aspect = _controller?.value.aspectRatio ?? 1;
+    return aspect.isFinite && aspect > 0 ? aspect : 1;
+  }
+
+  double? get _targetAspect => switch (_cropMode) {
+        'Original' => _videoAspect,
+        '1:1' => 1,
+        '3:4' => 3 / 4,
+        '4:3' => 4 / 3,
+        '16:9' => 16 / 9,
+        '9:16' => 9 / 16,
+        _ => null,
+      };
+
+  double? get _normalizedCropAspect {
+    final target = _targetAspect;
+    return target == null ? null : target / _videoAspect;
+  }
 
   @override
   void initState() {
@@ -200,10 +238,105 @@ class _VideoEditorScreenState extends State<VideoEditorScreen> {
     return '$m:$s';
   }
 
+  Rect _centeredCrop(double aspect) {
+    final width = aspect >= 1 ? 1.0 : aspect;
+    final height = aspect >= 1 ? 1 / aspect : 1.0;
+    return Rect.fromLTWH((1 - width) / 2, (1 - height) / 2, width, height);
+  }
+
+  void _selectCropMode(String mode) {
+    setState(() {
+      _cropMode = mode;
+      final aspect = _normalizedCropAspect;
+      if (aspect != null) _crop = _centeredCrop(aspect);
+    });
+  }
+
+  Offset _normalizedPoint(Offset local, Size size) => Offset(
+        (local.dx / size.width).clamp(0.0, 1.0).toDouble(),
+        (local.dy / size.height).clamp(0.0, 1.0).toDouble(),
+      );
+
+  void _onCropPanStart(DragStartDetails details, Size size) {
+    final point = _normalizedPoint(details.localPosition, size);
+    final corners = <String, Offset>{
+      'tl': Offset(_crop.left, _crop.top),
+      'tr': Offset(_crop.right, _crop.top),
+      'bl': Offset(_crop.left, _crop.bottom),
+      'br': Offset(_crop.right, _crop.bottom),
+    };
+    String? nearest;
+    var nearestDistance = 0.09;
+    for (final entry in corners.entries) {
+      final distance = (entry.value - point).distance;
+      if (distance < nearestDistance) {
+        nearest = entry.key;
+        nearestDistance = distance;
+      }
+    }
+    _cropDragMode = nearest ?? (_crop.contains(point) ? 'move' : null);
+    if (_cropDragMode == null) return;
+    _cropDragOrigin = point;
+    _cropDragStart = _crop;
+  }
+
+  void _onCropPanUpdate(DragUpdateDetails details, Size size) {
+    final mode = _cropDragMode;
+    if (mode == null) return;
+    final point = _normalizedPoint(details.localPosition, size);
+    final dx = point.dx - _cropDragOrigin.dx;
+    final dy = point.dy - _cropDragOrigin.dy;
+    final start = _cropDragStart;
+    if (mode == 'move') {
+      final left = (start.left + dx).clamp(0.0, 1.0 - start.width).toDouble();
+      final top = (start.top + dy).clamp(0.0, 1.0 - start.height).toDouble();
+      setState(() => _crop = Rect.fromLTWH(left, top, start.width, start.height));
+      return;
+    }
+
+    final leftSide = mode.endsWith('l');
+    final topSide = mode.startsWith('t');
+    final anchor = Offset(
+      leftSide ? start.right : start.left,
+      topSide ? start.bottom : start.top,
+    );
+    final requested = Offset(_cropDragOrigin.dx + dx, _cropDragOrigin.dy + dy);
+    final signedWidth = (requested.dx - anchor.dx) * (leftSide ? -1 : 1);
+    final signedHeight = (requested.dy - anchor.dy) * (topSide ? -1 : 1);
+    final lockedAspect = _normalizedCropAspect;
+    double width;
+    double height;
+    if (lockedAspect != null) {
+      final maxWidth = math.min(
+        leftSide ? anchor.dx : 1 - anchor.dx,
+        (topSide ? anchor.dy : 1 - anchor.dy) * lockedAspect,
+      );
+      if (maxWidth < 0.05) return;
+      width = math.max(signedWidth, signedHeight * lockedAspect)
+          .clamp(0.05, maxWidth).toDouble();
+      height = width / lockedAspect;
+    } else {
+      final maxWidth = leftSide ? anchor.dx : 1 - anchor.dx;
+      final maxHeight = topSide ? anchor.dy : 1 - anchor.dy;
+      if (maxWidth < 0.05 || maxHeight < 0.05) return;
+      width = signedWidth.clamp(0.05, maxWidth).toDouble();
+      height = signedHeight.clamp(0.05, maxHeight).toDouble();
+    }
+    final rect = Rect.fromLTRB(
+      leftSide ? anchor.dx - width : anchor.dx,
+      topSide ? anchor.dy - height : anchor.dy,
+      leftSide ? anchor.dx : anchor.dx + width,
+      topSide ? anchor.dy : anchor.dy + height,
+    );
+    setState(() => _crop = rect);
+  }
+
   void _done() {
     final endMs = _end.inMilliseconds >= _total.inMilliseconds - 200
         ? -1
         : _end.inMilliseconds;
+    final cropped = _crop.left > 0.002 || _crop.top > 0.002 ||
+        _crop.right < 0.998 || _crop.bottom < 0.998;
     Navigator.pop(
       context,
       EditedVideo(
@@ -211,6 +344,10 @@ class _VideoEditorScreenState extends State<VideoEditorScreen> {
         startMs: _start.inMilliseconds,
         endMs: endMs,
         muted: _muted,
+        cropX: cropped ? _crop.left : null,
+        cropY: cropped ? _crop.top : null,
+        cropWidth: cropped ? _crop.width : null,
+        cropHeight: cropped ? _crop.height : null,
       ),
     );
   }
@@ -220,20 +357,18 @@ class _VideoEditorScreenState extends State<VideoEditorScreen> {
     final c = _controller;
     final playing = c?.value.isPlaying ?? false;
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.black,
-        foregroundColor: Colors.white,
-        title: const Text('ویرایش ویدیو'),
+        title: Text(AppLocale.pick('ویرایش ویدیو', 'Edit video')),
         actions: [
           IconButton(
-            tooltip: _muted ? 'با صدا' : 'بی‌صدا',
+            tooltip: _muted ? AppLocale.pick('با صدا', 'Unmute') : AppLocale.pick('بی‌صدا', 'Mute'),
             icon: Icon(_muted ? Icons.volume_off : Icons.volume_up,
-                color: _muted ? Colors.amber : Colors.white),
+                color: _muted ? Colors.amber : Theme.of(context).colorScheme.onSurface),
             onPressed: _ready ? _toggleMute : null,
           ),
           IconButton(
-            tooltip: 'تأیید',
+            tooltip: AppLocale.pick('تأیید', 'Done'),
             icon: const Icon(Icons.check, color: Colors.green),
             onPressed: _ready ? _done : null,
           ),
@@ -244,25 +379,25 @@ class _VideoEditorScreenState extends State<VideoEditorScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.videocam_off_outlined,
-                      color: Colors.white38, size: 48),
+                  Icon(Icons.videocam_off_outlined,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant, size: 48),
                   const SizedBox(height: 8),
-                  const Text('این ویدیو قابل پیش‌نمایش نیست',
-                      style: TextStyle(color: Colors.white70)),
+                  Text(AppLocale.pick('این ویدیو قابل پیش‌نمایش نیست', 'This video cannot be previewed'),
+                      style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
                   const SizedBox(height: 12),
                   FilledButton(
                     onPressed: () => Navigator.pop(
                       context,
                       EditedVideo(file: widget.videoFile),
                     ),
-                    child: const Text('ارسال بدون ویرایش'),
+                    child: Text(AppLocale.pick('ارسال بدون ویرایش', 'Send original')),
                   ),
                 ],
               ),
             )
           : !_ready || c == null
-              ? const Center(
-                  child: CircularProgressIndicator(color: Colors.white))
+              ? Center(
+                  child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary))
               : Column(
                   children: [
                     Expanded(
@@ -271,30 +406,58 @@ class _VideoEditorScreenState extends State<VideoEditorScreen> {
                           aspectRatio: c.value.aspectRatio <= 0
                               ? 16 / 9
                               : c.value.aspectRatio,
-                          child: GestureDetector(
-                            onTap: _togglePlay,
-                            child: Stack(
-                              alignment: Alignment.center,
-                              children: [
-                                VideoPlayer(c),
-                                AnimatedOpacity(
-                                  opacity: playing ? 0 : 0.85,
-                                  duration: const Duration(milliseconds: 180),
-                                  child: const CircleAvatar(
-                                    radius: 28,
-                                    backgroundColor: Colors.black54,
-                                    child: Icon(Icons.play_arrow,
-                                        color: Colors.white, size: 36),
+                          child: LayoutBuilder(
+                            builder: (context, constraints) {
+                              final size = Size(
+                                constraints.maxWidth,
+                                constraints.maxHeight,
+                              );
+                              return Stack(
+                                fit: StackFit.expand,
+                                alignment: Alignment.center,
+                                children: [
+                                  GestureDetector(
+                                    onTap: _togglePlay,
+                                    child: Stack(
+                                      alignment: Alignment.center,
+                                      children: [
+                                        VideoPlayer(c),
+                                        AnimatedOpacity(
+                                          opacity: playing ? 0 : 0.85,
+                                          duration: const Duration(milliseconds: 180),
+                                          child: const CircleAvatar(
+                                            radius: 28,
+                                            backgroundColor: Colors.black54,
+                                            child: Icon(Icons.play_arrow,
+                                                color: Colors.white, size: 36),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
-                                ),
-                              ],
-                            ),
+                                  GestureDetector(
+                                    behavior: HitTestBehavior.translucent,
+                                    onPanStart: (details) =>
+                                        _onCropPanStart(details, size),
+                                    onPanUpdate: (details) =>
+                                        _onCropPanUpdate(details, size),
+                                    onPanEnd: (_) => _cropDragMode = null,
+                                    child: ColoredBox(
+                                      color: Colors.transparent,
+                                      child: CustomPaint(
+                                        painter: _VideoCropPainter(_crop),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              );
+                            },
                           ),
                         ),
                       ),
                     ),
                     Container(
-                      color: Colors.grey.shade900,
+                      color: Theme.of(context).colorScheme.surface,
                       padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
@@ -302,18 +465,61 @@ class _VideoEditorScreenState extends State<VideoEditorScreen> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text('شروع: ${_fmt(_start)}',
-                                  style: const TextStyle(
-                                      color: Colors.white70, fontSize: 12)),
-                              Text('پایان: ${_fmt(_end)}',
-                                  style: const TextStyle(
-                                      color: Colors.white70, fontSize: 12)),
-                              Text('مدت: ${_fmt(_end - _start)}',
-                                  style: const TextStyle(
-                                      color: Colors.greenAccent,
+                              Text('${AppLocale.pick('شروع', 'Start')}: ${_fmt(_start)}',
+                                  style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12)),
+                              Text('${AppLocale.pick('پایان', 'End')}: ${_fmt(_end)}',
+                                  style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12)),
+                              Text('${AppLocale.pick('مدت', 'Duration')}: ${_fmt(_end - _start)}',
+                                  style: TextStyle(
+                                      color: Theme.of(context).colorScheme.primary,
                                       fontSize: 12,
                                       fontWeight: FontWeight.w700)),
                             ],
+                          ),
+                          const SizedBox(height: 8),
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              AppLocale.pick('برش کادر ویدیو', 'Video crop'),
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ),
+                          SizedBox(
+                            height: 38,
+                            child: ListView(
+                              scrollDirection: Axis.horizontal,
+                              children: [
+                                for (final mode in const [
+                                  'Free', 'Original', '1:1', '3:4', '4:3', '16:9', '9:16',
+                                ])
+                                  Padding(
+                                    padding: const EdgeInsets.only(right: 6),
+                                    child: ChoiceChip(
+                                      label: Text(mode == 'Free'
+                                          ? AppLocale.pick('آزاد', 'Free')
+                                          : mode == 'Original'
+                                              ? AppLocale.pick('اصلی', 'Original')
+                                              : mode),
+                                      selected: _cropMode == mode,
+                                      visualDensity: VisualDensity.compact,
+                                      onSelected: (_) => _selectCropMode(mode),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                          Text(
+                            AppLocale.pick(
+                              'برای جابه‌جایی کادر آن را بکشید؛ برای تغییر اندازه گوشه‌ها را بکشید.',
+                              'Drag the frame to move it; drag a corner to resize.',
+                            ),
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              fontSize: 10,
+                            ),
                           ),
                           const SizedBox(height: 4),
                           // Playhead
@@ -323,7 +529,7 @@ class _VideoEditorScreenState extends State<VideoEditorScreen> {
                                 playing
                                     ? Icons.pause_circle_filled
                                     : Icons.play_circle_fill,
-                                color: Colors.white,
+                                color: Theme.of(context).colorScheme.onSurface,
                               ),
                               onPressed: _togglePlay,
                             ),
@@ -347,17 +553,17 @@ class _VideoEditorScreenState extends State<VideoEditorScreen> {
                               ),
                             ),
                             Text(_fmt(_position),
-                                style: const TextStyle(
-                                    color: Colors.white54, fontSize: 11)),
+                                style: TextStyle(
+                                    color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 11)),
                           ]),
                           const SizedBox(height: 2),
                           Row(children: [
-                            const Icon(Icons.content_cut,
-                                color: Colors.white54, size: 16),
+                            Icon(Icons.content_cut,
+                                color: Theme.of(context).colorScheme.onSurfaceVariant, size: 16),
                             const SizedBox(width: 6),
-                            const Text('برش',
+                            Text(AppLocale.pick('برش', 'Trim'),
                                 style: TextStyle(
-                                    color: Colors.white54, fontSize: 11)),
+                                    color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 11)),
                             Expanded(
                               child: RangeSlider(
                                 values: RangeValues(
@@ -371,19 +577,19 @@ class _VideoEditorScreenState extends State<VideoEditorScreen> {
                                 min: 0,
                                 max: _total.inMilliseconds.toDouble(),
                                 labels: RangeLabels(_fmt(_start), _fmt(_end)),
-                                activeColor: Colors.greenAccent,
+                                activeColor: Theme.of(context).colorScheme.primary,
                                 onChanged: _onRangeChanged,
                                 onChangeEnd: _onRangeChangeEnd,
                               ),
                             ),
                           ]),
                           if (_muted)
-                            const Row(children: [
-                              Icon(Icons.volume_off,
+                            Row(children: [
+                              const Icon(Icons.volume_off,
                                   color: Colors.amber, size: 16),
-                              SizedBox(width: 6),
-                              Text('ویدیو بدون صدا ارسال می‌شود',
-                                  style: TextStyle(
+                              const SizedBox(width: 6),
+                              Text(AppLocale.pick('ویدیو بدون صدا ارسال می‌شود', 'Video will be sent without sound'),
+                                  style: const TextStyle(
                                       color: Colors.amber, fontSize: 12)),
                             ]),
                         ],
@@ -393,4 +599,49 @@ class _VideoEditorScreenState extends State<VideoEditorScreen> {
                 ),
     );
   }
+}
+
+class _VideoCropPainter extends CustomPainter {
+  final Rect crop;
+  const _VideoCropPainter(this.crop);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final frame = Rect.fromLTRB(
+      crop.left * size.width,
+      crop.top * size.height,
+      crop.right * size.width,
+      crop.bottom * size.height,
+    );
+    final outside = Path()
+      ..fillType = PathFillType.evenOdd
+      ..addRect(Offset.zero & size)
+      ..addRect(frame);
+    canvas.drawPath(outside, Paint()..color = Colors.black.withOpacity(0.52));
+    canvas.drawRect(
+      frame,
+      Paint()
+        ..color = Colors.white
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.5,
+    );
+    final handlePaint = Paint()..color = Colors.white;
+    final outlinePaint = Paint()
+      ..color = Colors.black87
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.2;
+    for (final point in [
+      Offset(frame.left, frame.top),
+      Offset(frame.right, frame.top),
+      Offset(frame.left, frame.bottom),
+      Offset(frame.right, frame.bottom),
+    ]) {
+      canvas.drawCircle(point, 7, handlePaint);
+      canvas.drawCircle(point, 7, outlinePaint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _VideoCropPainter oldDelegate) =>
+      oldDelegate.crop != crop;
 }

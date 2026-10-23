@@ -38,7 +38,7 @@ class NotificationPoller {
       // Point 5: this runs in background isolates where no widget tree (and
       // so no Localizations) exists. Without this the banner text always fell
       // back to Persian, even for a user running the app in English.
-      AppLocale.set(prefs.getString('locale') ?? 'fa');
+      AppLocale.set(prefs.getString('locale') ?? 'en');
       var token = prefs.getString('access_token');
       final refreshToken = prefs.getString('refresh_token');
       if (token == null || token.isEmpty) return PollOutcome.signedOut;

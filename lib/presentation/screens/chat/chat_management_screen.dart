@@ -346,7 +346,7 @@ class _ChatManagementState extends State<_ChatManagement> {
                         style: Theme.of(context).textTheme.headlineSmall,
                       ),
                       Text(
-                        '${_info!['members_count']} ${widget.channel ? _t(context, 'subscribers', 'مشترک') : _t(context, 'members', 'عضو')} • ${_info!['online_count'] ?? 0} آنلاین',
+                        '${_info!['members_count']} ${widget.channel ? _t(context, 'subscribers', 'مشترک') : _t(context, 'members', 'عضو')} • ${_info!['online_count'] ?? 0} ${_t(context, 'online', 'آنلاین')}',
                         textAlign: TextAlign.center,
                       ),
                       if (_info?['is_suspended'] == true)
@@ -405,7 +405,7 @@ class _ChatManagementState extends State<_ChatManagement> {
                           title: Text(_t(context, 'Slow mode', 'حالت کند (محدودیت ارسال)')),
                           subtitle: Text(
                             (_info?['slow_mode_delay'] as int? ?? 0) > 0
-                                ? '${_info!['slow_mode_delay']} ثانیه'
+                                ? '${_info!['slow_mode_delay']} ${_t(context, 'seconds', 'ثانیه')}'
                                 : _t(context, 'Off', 'غیرفعال'),
                           ),
                           onTap: _busy ? null : _setSlowMode,
@@ -427,7 +427,7 @@ class _ChatManagementState extends State<_ChatManagement> {
                         SwitchListTile(
                           key: const ValueKey('allow-forwarding'),
                           secondary: const Icon(Icons.forward_outlined),
-                          title: Text(_t(context, 'Allow forwarding', 'اجازه فوروارد از این ${widget.channel ? 'کانال' : 'گروه'}')),
+                          title: Text(_t(context, 'Allow forwarding from this ${widget.channel ? 'channel' : 'group'}', 'اجازه فوروارد از این ${widget.channel ? 'کانال' : 'گروه'}')),
                           subtitle: Text(_t(context, 'Members can forward messages elsewhere', 'اعضا بتوانند پیام‌ها را به جاهای دیگر فوروارد کنند')),
                           value: (_info?['allow_forwarding'] as bool? ?? true),
                           onChanged: _busy ? null : (v) async {
@@ -510,7 +510,7 @@ class _ChatManagementState extends State<_ChatManagement> {
                                   _t(
                                     context,
                                     'Leave this chat?',
-                                    'خروج از این گفتگو؟',
+                                    _t(context, 'Leave this chat?', 'خروج از این گفتگو؟'),
                                   ),
                                 )) {
                                   await widget.api.post('$_base/leave', {});
@@ -529,12 +529,12 @@ class _ChatManagementState extends State<_ChatManagement> {
                                 ? _t(
                                     context,
                                     'Delete channel for everyone',
-                                    'حذف کانال برای همه',
+                                    _t(context, 'Delete channel for everyone', 'حذف کانال برای همه'),
                                   )
                                 : _t(
                                     context,
                                     'Delete group for everyone',
-                                    'حذف گروه برای همه',
+                                    _t(context, 'Delete group for everyone', 'حذف گروه برای همه'),
                                   ),
                           ),
                           onTap: _busy
@@ -544,7 +544,7 @@ class _ChatManagementState extends State<_ChatManagement> {
                                     _t(
                                       context,
                                       'Delete this chat for everyone?',
-                                      'حذف گفتگو برای همه؟',
+                                      _t(context, 'Delete this chat for everyone?', 'حذف گفتگو برای همه؟'),
                                     ),
                                   )) {
                                     await widget.api.post('$_base/delete', {
@@ -599,7 +599,7 @@ class _ChatManagementState extends State<_ChatManagement> {
                       : _t(
                           context,
                           'Remove administrator rights?',
-                          'حذف دسترسی مدیر؟',
+                          _t(context, 'Remove administrator rights?', 'حذف دسترسی مدیر؟'),
                         ),
                 )) {
                   await widget.api.post(
@@ -621,7 +621,7 @@ class _ChatManagementState extends State<_ChatManagement> {
                           ? _t(
                               context,
                               'Edit administrator rights',
-                              'ویرایش دسترسی مدیر',
+                              _t(context, 'Edit administrator rights', 'ویرایش دسترسی مدیر'),
                             )
                           : _t(context, 'Add administrator', 'افزودن مدیر'),
                     ),
@@ -725,7 +725,7 @@ class _PermissionEditorState extends State<_PermissionEditor> {
                 _t(
                   context,
                   'Changes are saved when you go back or tap Save.',
-                  'تغییرات هنگام بازگشت یا لمس ذخیره، ثبت می‌شوند.',
+                  _t(context, 'Changes are saved when you go back or tap Save.', 'تغییرات هنگام بازگشت یا لمس ذخیره، ثبت می‌شوند.'),
                 ),
               ),
             ),
@@ -1181,7 +1181,7 @@ class _ChatInfoEditorState extends State<_ChatInfoEditor> {
                       : _t(
                           context,
                           'Use 3–30 letters, numbers or underscores',
-                          'از ۳ تا ۳۰ حرف انگلیسی، عدد یا زیرخط استفاده کنید',
+                          _t(context, 'Use 3–30 lowercase letters, numbers, or underscores.', 'از ۳ تا ۳۰ حرف انگلیسی، عدد یا زیرخط استفاده کنید'),
                         );
                 },
               ),

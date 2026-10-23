@@ -41,6 +41,93 @@ def configured(monkeypatch):
     monkeypatch.setattr(push, '_config', lambda: {'project_id': 'demo'})
 
 
+def test_oauth_refresh_retries_transient_disconnect_with_bounded_timeout(monkeypatch):
+    import requests
+
+    timeouts = []
+    sleeps = []
+
+    def fake_request(url, **kwargs):
+        timeouts.append(kwargs['timeout'])
+        return object()
+
+    class Credentials:
+        token = 'refreshed-token'
+
+        def __init__(self):
+            self.attempts = 0
+
+        def refresh(self, request):
+            self.attempts += 1
+            request('https://oauth.example/token', timeout=90)
+            if self.attempts < 3:
+                raise requests.exceptions.ConnectionError(
+                    'RemoteDisconnected: remote end closed connection')
+
+    credentials = Credentials()
+    push._refresh_credentials(credentials, fake_request, sleep=sleeps.append)
+    assert credentials.attempts == 3
+    assert timeouts == [push._FCM_TIMEOUT_SECONDS] * 3
+    assert sleeps == [0.25, 0.5]
+
+
+def test_oauth_refresh_exhaustion_is_classified_as_transport_failure():
+    import requests
+
+    class Credentials:
+        def refresh(self, request):
+            request('https://oauth.example/token')
+            raise requests.exceptions.ConnectionError('connection aborted')
+
+    with pytest.raises(push.FCMRefreshTransportError):
+        push._refresh_credentials(
+            Credentials(), lambda *_args, **_kwargs: object(), sleep=lambda _: None,
+        )
+
+
+def test_send_tick_logs_oauth_transport_separately_from_bad_credentials(
+        configured, monkeypatch, caplog):
+    monkeypatch.setattr(
+        push, '_access_token',
+        lambda: (_ for _ in ()).throw(push.FCMRefreshTransportError('disconnected')),
+    )
+    assert push.send_tick(['tok'], {'kind': 'tick'}) == (0, [])
+    assert 'FCM tick skipped (OAuth transport)' in caplog.text
+    assert '(credentials)' not in caplog.text
+
+    caplog.clear()
+    monkeypatch.setattr(push, '_last_credential_error_log', 0.0)
+    monkeypatch.setattr(
+        push, '_access_token',
+        lambda: (_ for _ in ()).throw(push.FCMCredentialsError('invalid key')),
+    )
+    assert push.send_tick(['tok'], {'kind': 'tick'}) == (0, [])
+    assert 'FCM tick skipped (service-account credentials)' in caplog.text
+
+
+def test_google_credential_diagnostic_is_actionable_and_does_not_echo_key():
+    error = push._google_credential_error_message(
+        RuntimeError('invalid_grant: Invalid JWT Signature. private_key=do-not-log'),
+    )
+    assert 'Rotate the JSON key' in error
+    assert 'server clock' in error
+    assert 'do-not-log' not in error
+
+
+def test_credential_errors_are_logged_once_per_cooldown(monkeypatch, caplog):
+    now = [1000.0]
+    monkeypatch.setattr(push, '_last_credential_error_log', 0.0)
+    monkeypatch.setattr(push.time, 'monotonic', lambda: now[0])
+
+    push._log_credential_error_once('bad key')
+    push._log_credential_error_once('bad key')
+    assert caplog.text.count('FCM tick skipped (service-account credentials)') == 1
+
+    now[0] += push._FCM_CREDENTIAL_LOG_INTERVAL_SECONDS + 1
+    push._log_credential_error_once('bad key')
+    assert caplog.text.count('FCM tick skipped (service-account credentials)') == 2
+
+
 def test_send_tick_noop_without_config_and_without_http(monkeypatch):
     monkeypatch.setattr(push, 'push_configured', lambda: False)
 

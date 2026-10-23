@@ -26,7 +26,7 @@ def _template_parameters(code: str, mobile_number: str) -> list[dict[str, str]]:
     """Build SMS.ir's parameter list without putting template details in code.
 
     ``SMS_IR_TEMPLATE_PARAMETERS`` may be a JSON object, for example:
-    {"CODE":"{code}","APP":"SecureMessenger"}
+    {"CODE":"{code}","APP":"Reyno"}
     The {code} and {mobile} tokens are substituted at send time.  A single
     CODE parameter is used by default, which matches SMS.ir's own example.
     """

@@ -21,7 +21,7 @@ def _signer():
 
 def create_invite_link(chat):
     if chat.is_public and chat.username:
-        # These are SecureMessenger usernames, NOT Telegram accounts.
+        # These are Reyno usernames, NOT Telegram accounts.
         return f'securemessenger://public/{chat.username}'
     token = _signer().dumps({'chat_id': chat.id})
     return f'securemessenger://join/{token}'

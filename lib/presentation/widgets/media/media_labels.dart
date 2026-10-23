@@ -41,6 +41,10 @@ class MediaLabels {
       : 'Once closed, this photo cannot be opened again';
   String get expired =>
       isFa ? 'عکس دیگر در دسترس نیست' : 'This photo is no longer available';
+  String get mediaExpired => isFa ? 'رسانه منقضی شده' : 'Media expired';
+  String get mediaExpiredNotice => isFa
+      ? 'تاریخچه پیام باقی مانده؛ فایل پس از ۷۲ ساعت از سرور حذف می‌شود.'
+      : 'Chat history is kept; the server copy is removed after 72 hours.';
   String get latest =>
       isFa ? 'بازگشت به آخرین پیام‌ها' : 'Back to latest messages';
   String get earlier => isFa ? 'پیام‌های قدیمی‌تر' : 'Earlier messages';

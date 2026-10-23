@@ -207,7 +207,8 @@ def _issue_phone_code(
     db.session.add(challenge)
     db.session.flush()
 
-    # Registration always goes by SMS: the account has no trusted session yet.
+    # SMS-backed registration/recovery always uses SMS. Authenticator-based
+    # registration has its own flow and does not call this helper.
     channel = DELIVERY_SMS
     if purpose == PHONE_CODE_PURPOSE_LOGIN and not force_sms:
         channel = choose_delivery_channel(user.id)
@@ -456,9 +457,16 @@ def _verify_challenge_code(challenge: PhoneVerification, code: object) -> None:
         raise AuthFlowError('کد تأیید نادرست است', 401)
 
 
+@auth_bp.route('/methods', methods=['GET'])
+def auth_methods():
+    """Public, non-secret login/registration policy for client routing."""
+    from app.services import app_settings
+    return jsonify(app_settings.get_auth_methods()), 200
+
+
 @auth_bp.route('/register', methods=['POST'])
 def register():
-    """Create an inactive account and send the mandatory phone code."""
+    """Create an inactive account and start the configured verification flow."""
     data = request.get_json(silent=True) or {}
     email = (data.get('email') or '').strip().lower()
     password = data.get('password') or ''
@@ -529,10 +537,37 @@ def register():
         user.set_password(password)
         user.generate_totp_secret()
 
+    from app.services import app_settings
+    registration_method = app_settings.get_auth_methods()['registration_method']
     try:
         db.session.flush()
-        challenge, delivery_channel = _issue_phone_code(
-            user, PHONE_CODE_PURPOSE_REGISTER)
+        if registration_method == 'totp':
+            # The authenticator is enrolled by the user during this request;
+            # no SMS is sent and the phone remains explicitly unverified.
+            _enforce_send_limit(mobile_number, 'registration_totp', get_client_ip())
+            now = datetime.utcnow()
+            challenge_id = str(uuid.uuid4())
+            challenge = PhoneVerification(
+                id=challenge_id, user_id=user.id,
+                mobile_number=mobile_number, purpose='registration_totp',
+                code_hash=_code_digest(challenge_id, secrets.token_hex(16)),
+                expires_at=now + timedelta(seconds=int(
+                    current_app.config['PHONE_CODE_TTL_SECONDS'])),
+                ip_address=get_client_ip(), created_at=now,
+            )
+            db.session.add(challenge)
+            verification = {
+                'verification_method': 'totp',
+                'totp_secret': user.totp_secret,
+                'totp_uri': user.get_totp_uri(),
+            }
+        else:
+            challenge, delivery_channel = _issue_phone_code(
+                user, PHONE_CODE_PURPOSE_REGISTER)
+            verification = {
+                'verification_method': 'sms',
+                'delivery_channel': delivery_channel,
+            }
         db.session.add(AuditLog(
             actor_id=user.id,
             action='user_register',
@@ -541,6 +576,7 @@ def register():
             ip_address=get_client_ip(),
             user_agent=request.headers.get('User-Agent'),
             device_fingerprint=create_device_fingerprint(device_info),
+            new_value=registration_method,
         ))
         db.session.commit()
     except AuthFlowError as error:
@@ -552,15 +588,65 @@ def register():
         return jsonify({'error': 'ارسال پیامک تأیید موقتاً ممکن نیست. دوباره تلاش کنید.'}), 503
     except Exception:
         db.session.rollback()
-        current_app.logger.exception('Could not start phone registration.')
+        current_app.logger.exception('Could not start account registration.')
         return jsonify({'error': 'ثبت‌نام موقتاً ممکن نیست. دوباره تلاش کنید.'}), 503
 
     return jsonify({
-        'message': 'کد تأیید به شماره موبایل شما ارسال شد.',
+        'message': ('برای فعال‌سازی، کد Google Authenticator را وارد کنید.'
+                    if registration_method == 'totp'
+                    else 'کد تأیید به شماره موبایل شما ارسال شد.'),
         'verification_id': challenge.id,
         'mobile_number': _mask_mobile(mobile_number),
         'expires_in_seconds': int(current_app.config['PHONE_CODE_TTL_SECONDS']),
+        **verification,
     }), 201
+
+
+@auth_bp.route('/verify-totp-registration', methods=['POST'])
+def verify_totp_registration():
+    """Activate a pending TOTP-enrolled account without sending an SMS."""
+    data = request.get_json(silent=True) or {}
+    try:
+        challenge = _challenge_or_error(data.get('verification_id'))
+        if challenge.purpose != 'registration_totp' or challenge.verified_at:
+            raise AuthFlowError('درخواست ثبت‌نام نامعتبر است', 401)
+        user = User.query.filter_by(
+            id=challenge.user_id, is_deleted=False, is_active=False,
+        ).first()
+        if user is None or not user.verify_totp(data.get('code')):
+            challenge.attempts += 1
+            if challenge.attempts >= int(current_app.config['PHONE_CODE_MAX_ATTEMPTS']):
+                challenge.revoked_at = datetime.utcnow()
+                db.session.commit()
+                raise AuthFlowError('تلاش‌های ناموفق بیش از حد مجاز است. ثبت‌نام را دوباره آغاز کنید.', 429)
+            db.session.commit()
+            raise AuthFlowError('کد Google Authenticator نادرست است', 401)
+
+        user.is_active = True
+        user.is_2fa_enabled = True
+        # Deliberately do not mark mobile_verified_at: this registration path
+        # proves authenticator possession, not control of the supplied phone.
+        challenge.verified_at = datetime.utcnow()
+        challenge.consumed_at = datetime.utcnow()
+        db.session.add(AuditLog(
+            actor_id=user.id, action='totp_registration_verified',
+            entity_type='user', entity_id=user.id,
+            ip_address=get_client_ip(),
+            user_agent=request.headers.get('User-Agent'),
+        ))
+        response = _create_authenticated_session(
+            user, _as_device_info(data.get('device_info')),
+            audit_action='user_register_login_totp',
+        )
+        db.session.commit()
+        return jsonify(response), 200
+    except AuthFlowError as error:
+        db.session.rollback()
+        return _error(error)
+    except Exception:
+        db.session.rollback()
+        current_app.logger.exception('Could not verify TOTP registration.')
+        return jsonify({'error': 'تأیید ثبت‌نام موقتاً ممکن نیست. دوباره تلاش کنید.'}), 503
 
 
 def _is_registered_number(mobile_number: str) -> bool:
@@ -728,6 +814,18 @@ def verify_phone():
             raise AuthFlowError('کد تأیید نامعتبر یا منقضی شده است', 401)
 
         challenge.verified_at = datetime.utcnow()
+        from app.services import app_settings
+        if (user.is_2fa_enabled and
+                app_settings.get_auth_methods()['login_priority'] == 'totp'):
+            # SMS is an explicit recovery/fallback route when the admin chose
+            # authenticator-first. It requires a previously verified number.
+            challenge.consumed_at = datetime.utcnow()
+            response = _create_authenticated_session(
+                user, _as_device_info(data.get('device_info')),
+                audit_action='phone_fallback_login',
+            )
+            db.session.commit()
+            return jsonify(response), 200
         if user.is_2fa_enabled:
             db.session.commit()
             return jsonify({
@@ -798,6 +896,66 @@ def verify_login_2fa():
 # can still access and migrate naturally. New phone-verified accounts use the
 # phone endpoints above and never need this path.
 # ---------------------------------------------------------------------------
+@auth_bp.route('/request-phone-recovery-code', methods=['POST'])
+@jwt_required()
+def request_phone_recovery_code():
+    """Let a signed-in owner verify their saved number for future fallback."""
+    user = User.query.filter_by(
+        id=get_jwt_identity(), is_deleted=False, is_active=True,
+    ).first()
+    if not user or not user.mobile_number:
+        return jsonify({'error': 'No recovery phone number is configured.'}), 400
+    if user.mobile_verified_at:
+        return jsonify({'already_verified': True}), 200
+    try:
+        challenge, _ = _issue_phone_code(
+            user, 'phone_recovery', force_sms=True)
+        db.session.commit()
+        return jsonify({
+            'verification_id': challenge.id,
+            'mobile_number': _mask_mobile(user.mobile_number),
+            'expires_in_seconds': int(current_app.config['PHONE_CODE_TTL_SECONDS']),
+        }), 202
+    except AuthFlowError as error:
+        db.session.rollback()
+        return _error(error)
+    except SmsDeliveryError:
+        db.session.rollback()
+        return jsonify({'error': 'Could not send the recovery SMS. Please try again.'}), 503
+
+
+@auth_bp.route('/verify-phone-recovery', methods=['POST'])
+@jwt_required()
+def verify_phone_recovery():
+    """Verify the owner's registration phone as an SMS recovery channel."""
+    data = request.get_json(silent=True) or {}
+    user = User.query.filter_by(
+        id=get_jwt_identity(), is_deleted=False, is_active=True,
+    ).first()
+    if not user:
+        return jsonify({'error': 'Account not found.'}), 404
+    try:
+        challenge = _challenge_or_error(data.get('verification_id'))
+        if (challenge.purpose != 'phone_recovery' or
+                challenge.user_id != user.id or
+                challenge.mobile_number != user.mobile_number):
+            raise AuthFlowError('Invalid recovery request.', 401)
+        _verify_challenge_code(challenge, data.get('code'))
+        user.mobile_verified_at = datetime.utcnow()
+        challenge.verified_at = datetime.utcnow()
+        challenge.consumed_at = datetime.utcnow()
+        db.session.add(AuditLog(
+            actor_id=user.id, action='phone_recovery_verified',
+            entity_type='user', entity_id=user.id,
+            ip_address=get_client_ip(),
+        ))
+        db.session.commit()
+        return jsonify({'verified': True}), 200
+    except AuthFlowError as error:
+        db.session.rollback()
+        return _error(error)
+
+
 @auth_bp.route('/login', methods=['POST'])
 def login():
     data = request.get_json(silent=True) or {}
@@ -811,9 +969,16 @@ def login():
         return jsonify({'error': 'ایمیل یا رمز عبور اشتباه است'}), 401
     if not user.is_active:
         return jsonify({'error': 'اکانت غیرفعال است'}), 403
-    if user.mobile_number and user.mobile_verified_at:
+    from app.services import app_settings
+    login_priority = app_settings.get_auth_methods()['login_priority']
+    if user.mobile_number and user.mobile_verified_at and login_priority != 'totp':
         return jsonify({
             'error': 'برای ورود، شماره موبایل و کد پیامک را وارد کنید.',
+            'require_phone': True,
+        }), 400
+    if user.mobile_number and user.mobile_verified_at and login_priority == 'totp' and not user.is_2fa_enabled:
+        return jsonify({
+            'error': 'این حساب هنوز Google Authenticator را فعال نکرده است؛ با پیامک وارد شوید.',
             'require_phone': True,
         }), 400
     if user.is_2fa_enabled:

@@ -273,7 +273,9 @@ class _ViewOncePhotoScreenState extends State<ViewOncePhotoScreen>
                       Expanded(
                         child: Text(
                           _timed
-                              ? 'عکس زمان‌دار (${widget.viewDuration} ثانیه)'
+                              ? (labels.isFa
+                                  ? 'عکس زمان‌دار (${widget.viewDuration} ثانیه)'
+                                  : 'Timed photo (${widget.viewDuration} seconds)')
                               : labels.viewOnce,
                           style: const TextStyle(color: Colors.white),
                         ),
@@ -294,7 +296,9 @@ class _ViewOncePhotoScreenState extends State<ViewOncePhotoScreen>
                   minimum: const EdgeInsets.all(16),
                   child: Text(
                     _timed
-                        ? 'این عکس ${_remaining.inSeconds + 1} ثانیه دیگر بسته می‌شود و دوباره باز نخواهد شد.'
+                        ? (labels.isFa
+                            ? 'این عکس ${_remaining.inSeconds + 1} ثانیه دیگر بسته می‌شود و دوباره باز نخواهد شد.'
+                            : 'This photo closes in ${_remaining.inSeconds + 1} seconds and cannot be opened again.')
                         : labels.disappears,
                     textAlign: TextAlign.center,
                     style: const TextStyle(color: Colors.white70, fontSize: 13),

@@ -13,8 +13,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 class AppLocale {
   AppLocale._();
 
-  /// Persian is the product default, matching `LocaleNotifier`.
-  static String _code = 'fa';
+  /// English is the product default, matching `LocaleNotifier`.
+  static String _code = 'en';
 
   /// The active language code ('fa' or 'en').
   static String get code => _code;
@@ -32,7 +32,7 @@ class AppLocale {
   static Future<String> load() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      set(prefs.getString('locale') ?? 'fa');
+      set(prefs.getString('locale') ?? 'en');
     } catch (_) {
       // Storage unavailable: keep the default rather than fail a notification.
     }

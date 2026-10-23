@@ -6,6 +6,7 @@ from app.models.media import MediaFile
 from app.models.message import Message
 from app.models.audit import AuditLog
 from datetime import datetime
+import math
 import os
 import shutil
 import subprocess
@@ -146,6 +147,23 @@ def upload_media():
     else:
         ext = ''
         stored_name = f"{uuid.uuid4().hex}"
+
+    crop_fields = ('crop_x', 'crop_y', 'crop_width', 'crop_height')
+    crop_requested = any(key in request.form for key in crop_fields)
+    crop = None
+    if crop_requested:
+        if get_media_type(ext) != 'video' or not all(key in request.form for key in crop_fields):
+            return jsonify({'error': 'Invalid video crop parameters'}), 400
+        try:
+            crop = tuple(float(request.form[key]) for key in crop_fields)
+        except (TypeError, ValueError):
+            return jsonify({'error': 'Invalid video crop parameters'}), 400
+        x, y, width, height = crop
+        if (not all(math.isfinite(value) for value in crop)
+                or x < 0 or y < 0 or width < 0.05 or height < 0.05
+                or x + width > 1.000001 or y + height > 1.000001):
+            return jsonify({'error': 'Invalid video crop parameters'}), 400
+
     upload_folder = current_app.config['UPLOAD_FOLDER']
     os.makedirs(upload_folder, exist_ok=True)
     file_path = os.path.abspath(os.path.join(upload_folder, stored_name))
@@ -155,27 +173,92 @@ def upload_media():
         return jsonify(
             app_settings.limit_error_payload(category, limit_bytes)), 413
 
-    # Optional video-editor trim (start/end in ms). Applied server-side with
-    # ffmpeg when available; otherwise the full video is kept (graceful).
-    try:
-        trim_start = request.form.get('trim_start_ms')
-        trim_end = request.form.get('trim_end_ms')
-        if (trim_start or trim_end) and get_media_type(ext) == 'video' and shutil.which('ffmpeg'):
+    mime_type = file.mimetype or (f'application/{ext}' if ext else 'application/octet-stream')
+    trim_start = request.form.get('trim_start_ms')
+    trim_end = request.form.get('trim_end_ms')
+
+    if crop is not None:
+        if not shutil.which('ffmpeg'):
+            os.remove(file_path)
+            return jsonify({'error': 'Video cropping is temporarily unavailable (ffmpeg is not installed).'}), 503
+        try:
+            start_ms = max(0, int(trim_start or 0))
+            end_ms = int(trim_end) if trim_end and int(trim_end) > 0 else None
+        except (TypeError, ValueError):
+            os.remove(file_path)
+            return jsonify({'error': 'Invalid video trim parameters'}), 400
+        if end_ms is not None and end_ms <= start_ms:
+            os.remove(file_path)
+            return jsonify({'error': 'Invalid video trim range'}), 400
+
+        x, y, width, height = crop
+        crop_filter = (
+            f'crop=trunc(iw*{width:.8f}/2)*2:'
+            f'trunc(ih*{height:.8f}/2)*2:'
+            f'trunc(iw*{x:.8f}/2)*2:'
+            f'trunc(ih*{y:.8f}/2)*2'
+        )
+        tmp_path = file_path + '.edit.mp4'
+        command = ['ffmpeg', '-v', 'error', '-y']
+        if start_ms:
+            command += ['-ss', f'{start_ms / 1000:.3f}']
+        command += ['-i', file_path, '-vf', crop_filter]
+        if end_ms is not None:
+            command += ['-t', f'{(end_ms - start_ms) / 1000:.3f}']
+        command += [
+            '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '23',
+            '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '128k',
+            '-movflags', '+faststart', tmp_path,
+        ]
+        cropped_path = None
+        try:
+            proc = subprocess.run(command, capture_output=True, timeout=180)
+            if proc.returncode != 0 or not os.path.isfile(tmp_path) or os.path.getsize(tmp_path) == 0:
+                raise RuntimeError('ffmpeg could not apply the requested crop')
+            if limit_bytes is not None and os.path.getsize(tmp_path) > limit_bytes:
+                raise _FileTooLarge(limit_bytes)
+            cropped_name = f'{uuid.uuid4().hex}.mp4'
+            cropped_path = os.path.abspath(os.path.join(upload_folder, cropped_name))
+            os.replace(tmp_path, cropped_path)
+            os.remove(file_path)
+            file_path = cropped_path
+            stored_name = cropped_name
+            ext = 'mp4'
+            mime_type = 'video/mp4'
+        except _FileTooLarge:
+            for path in (tmp_path, file_path, cropped_path):
+                try:
+                    if path and os.path.exists(path):
+                        os.remove(path)
+                except OSError:
+                    pass
+            return jsonify(app_settings.limit_error_payload(category, limit_bytes)), 413
+        except Exception:
+            for path in (tmp_path, file_path, cropped_path):
+                try:
+                    if path and os.path.exists(path):
+                        os.remove(path)
+                except OSError:
+                    pass
+            return jsonify({'error': 'The video could not be cropped. Please try again or send the original.'}), 422
+    elif (trim_start or trim_end) and get_media_type(ext) == 'video' and shutil.which('ffmpeg'):
+        # Trimming alone remains a fast stream-copy operation where supported.
+        try:
             start_s = max(0, int(trim_start or 0)) / 1000.0
             end_s = int(trim_end) / 1000.0 if trim_end and int(trim_end) > 0 else None
             if end_s is None or end_s > start_s:
                 tmp_path = file_path + '.trim.mp4'
-                cmd = ['ffmpeg', '-y', '-ss', str(start_s), '-i', file_path]
+                command = ['ffmpeg', '-y', '-ss', str(start_s), '-i', file_path]
                 if end_s is not None:
-                    cmd += ['-t', str(end_s - start_s)]
-                cmd += ['-c', 'copy', tmp_path]
-                proc = subprocess.run(cmd, capture_output=True, timeout=120)
+                    command += ['-t', str(end_s - start_s)]
+                command += ['-c', 'copy', tmp_path]
+                proc = subprocess.run(command, capture_output=True, timeout=120)
                 if proc.returncode == 0 and os.path.getsize(tmp_path) > 0:
                     os.replace(tmp_path, file_path)
                 elif os.path.exists(tmp_path):
                     os.remove(tmp_path)
-    except Exception:
-        pass  # Never fail an upload because trimming is unavailable.
+        except Exception:
+            pass  # Never fail an upload because trimming is unavailable.
 
     file_size = os.path.getsize(file_path)
     media_type = get_media_type(ext)
@@ -196,7 +279,7 @@ def upload_media():
         uploader_id=user_id,
         original_name=original_name,
         stored_name=stored_name,
-        mime_type=file.mimetype or (f'application/{ext}' if ext else 'application/octet-stream'),
+        mime_type=mime_type,
         file_size=file_size,
         file_path=file_path,
         media_type=media_type,

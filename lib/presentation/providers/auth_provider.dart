@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/utils/app_locale.dart';
 import '../../data/models/user_model.dart';
 import '../../data/services/account_service.dart';
 import '../../data/services/api_service.dart';
@@ -214,7 +215,7 @@ class AuthNotifier extends StateNotifier<AsyncValue<UserModel?>> {
     );
     if (!_isCurrent(generation)) return;
     if (session.user.id != account.userId) {
-      throw ApiException(statusCode: 403, message: 'حساب ذخیره‌شده معتبر نیست');
+      throw ApiException(statusCode: 403, message: AppLocale.pick('حساب ذخیره‌شده معتبر نیست', 'The saved account is invalid.'));
     }
     await _saveSession(
       session.user,

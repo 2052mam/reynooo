@@ -8,7 +8,7 @@ class SystemSettingsService {
   static const _channel = MethodChannel('secure_messenger/system');
 
   /// Opens the vendor's autostart manager (Xiaomi/Huawei/Oppo/Vivo/...)
-  /// so the user can allow SecureMessenger to start in the background.
+  /// so the user can allow Reyno to start in the background.
   /// Falls back to the app-details settings page. Returns false when
   /// nothing could be opened.
   static Future<bool> openAutoStartSettings() async {

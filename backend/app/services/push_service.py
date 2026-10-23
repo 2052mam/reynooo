@@ -25,6 +25,22 @@ log = logging.getLogger(__name__)
 _FCM_TIMEOUT_SECONDS = 5
 _token_cache = {'token': None, 'expires_at': 0.0}
 _cache_lock = threading.Lock()
+_MAX_OAUTH_ATTEMPTS = 3
+_OAUTH_RETRY_BACKOFF_SECONDS = 0.25
+_FCM_CREDENTIAL_RECHECK_SECONDS = 300
+_FCM_CREDENTIAL_LOG_INTERVAL_SECONDS = 300
+_cached_credential_error = None
+_cached_credential_error_until = 0.0
+_last_credential_error_log = 0.0
+_credential_error_lock = threading.Lock()
+
+
+class FCMRefreshTransportError(RuntimeError):
+    """The OAuth endpoint could not be reached after bounded retries."""
+
+
+class FCMCredentialsError(RuntimeError):
+    """The configured service-account credentials are invalid or unusable."""
 
 
 def _config():
@@ -53,23 +69,129 @@ def _service_account_info():
         return json.load(fh)
 
 
+def _is_transient_oauth_transport_error(error):
+    """Recognize connection drops/timeouts without masking OAuth rejections."""
+    try:
+        import requests
+        transient_types = (
+            requests.exceptions.ConnectionError,
+            requests.exceptions.Timeout,
+            TimeoutError,
+            ConnectionError,
+        )
+    except ImportError:  # pragma: no cover - requests is a backend dependency
+        transient_types = (TimeoutError, ConnectionError)
+
+    pending = [error]
+    seen = set()
+    while pending:
+        current = pending.pop()
+        if id(current) in seen:
+            continue
+        seen.add(id(current))
+        if isinstance(current, transient_types):
+            return True
+        if isinstance(current, OSError):
+            # RemoteDisconnected and socket-level disconnects are OSErrors.
+            return True
+        if current.__cause__ is not None:
+            pending.append(current.__cause__)
+        if current.__context__ is not None:
+            pending.append(current.__context__)
+        pending.extend(arg for arg in current.args if isinstance(arg, BaseException))
+    return False
+
+
+def _google_credential_error_message(error):
+    """Return actionable OAuth diagnostics without logging credential material."""
+    message = str(error).lower()
+    if 'invalid_grant' in message and 'signature' in message:
+        return (
+            'Google rejected the service-account signing key (invalid_grant). '
+            'Rotate the JSON key and verify the server clock.'
+        )
+    if 'invalid_grant' in message:
+        return (
+            'Google rejected the service-account grant (invalid_grant). '
+            'Verify the key is active, the service account is enabled, and the server clock is correct.'
+        )
+    if 'unauthorized_client' in message:
+        return (
+            'Google denied OAuth access for this service account (unauthorized_client). '
+            'Verify the account and Firebase project configuration.'
+        )
+    if 'invalid_scope' in message:
+        return 'Google rejected the FCM OAuth scope (invalid_scope).'
+    return (
+        'Google rejected the service-account credentials. Verify the JSON key is active, '
+        'the account is enabled, and the configured Firebase project matches.'
+    )
+
+
+class _BoundedOAuthRequest:
+    """Keep google-auth's refresh HTTP calls bounded, including retries."""
+    def __init__(self, request):
+        self._request = request
+
+    def __call__(self, *args, **kwargs):
+        kwargs['timeout'] = _FCM_TIMEOUT_SECONDS
+        return self._request(*args, **kwargs)
+
+
+def _refresh_credentials(credentials, request, *, sleep=time.sleep):
+    bounded_request = _BoundedOAuthRequest(request)
+    for attempt in range(_MAX_OAUTH_ATTEMPTS):
+        try:
+            credentials.refresh(bounded_request)
+            return
+        except Exception as exc:
+            if not _is_transient_oauth_transport_error(exc):
+                raise
+            if attempt + 1 == _MAX_OAUTH_ATTEMPTS:
+                raise FCMRefreshTransportError(
+                    f'OAuth token endpoint unreachable after {attempt + 1} attempts'
+                ) from exc
+            sleep(_OAUTH_RETRY_BACKOFF_SECONDS * (2 ** attempt))
+
+
 def _access_token():
     """OAuth2 token for the FCM HTTP v1 API, cached until near-expiry."""
+    global _cached_credential_error, _cached_credential_error_until
     now = time.time()
     with _cache_lock:
         if _token_cache['token'] and _token_cache['expires_at'] > now + 60:
             return _token_cache['token']
+        if _cached_credential_error and _cached_credential_error_until > now:
+            raise FCMCredentialsError(_cached_credential_error)
+        _cached_credential_error = None
+        _cached_credential_error_until = 0.0
     try:
+        from google.auth.exceptions import RefreshError
         from google.auth.transport.requests import Request
         from google.oauth2 import service_account
-    except ImportError:
-        raise RuntimeError('google-auth is not installed')
-    credentials = service_account.Credentials.from_service_account_info(
-        _service_account_info(),
-        scopes=['https://www.googleapis.com/auth/firebase.messaging'],
-    )
-    credentials.refresh(Request())
+    except ImportError as exc:
+        raise FCMCredentialsError('google-auth is not installed') from exc
+    try:
+        info = _service_account_info()
+        credentials = service_account.Credentials.from_service_account_info(
+            info,
+            scopes=['https://www.googleapis.com/auth/firebase.messaging'],
+        )
+    except (OSError, ValueError, TypeError, KeyError) as exc:
+        raise FCMCredentialsError('service-account configuration is invalid') from exc
+    try:
+        _refresh_credentials(credentials, Request())
+    except FCMRefreshTransportError:
+        raise
+    except RefreshError as exc:
+        message = _google_credential_error_message(exc)
+        with _cache_lock:
+            _cached_credential_error = message
+            _cached_credential_error_until = time.time() + _FCM_CREDENTIAL_RECHECK_SECONDS
+        raise FCMCredentialsError(message) from exc
     with _cache_lock:
+        _cached_credential_error = None
+        _cached_credential_error_until = 0.0
         _token_cache['token'] = credentials.token
         _token_cache['expires_at'] = now + 3300
     return credentials.token
@@ -90,6 +212,22 @@ def _is_unregistered(status_code, body_text):
     return False
 
 
+def _log_credential_error_once(error):
+    """Keep a bad key from flooding logs while keeping the first diagnosis."""
+    global _last_credential_error_log
+    now = time.monotonic()
+    with _credential_error_lock:
+        if now - _last_credential_error_log < _FCM_CREDENTIAL_LOG_INTERVAL_SECONDS:
+            return
+        _last_credential_error_log = now
+    log.error(
+        'FCM tick skipped (service-account credentials): %s; '
+        'next credential check in at most %s seconds',
+        error,
+        _FCM_CREDENTIAL_RECHECK_SECONDS,
+    )
+
+
 def send_tick(tokens, data, collapse_key=None):
     """POST one data-only tick per token. Returns (delivered, stale_tokens).
 
@@ -102,8 +240,14 @@ def send_tick(tokens, data, collapse_key=None):
     try:
         access_token = _access_token()
         project_id = _config()['project_id']
+    except FCMRefreshTransportError as exc:
+        log.warning('FCM tick skipped (OAuth transport): %s', exc)
+        return 0, []
+    except FCMCredentialsError as exc:
+        _log_credential_error_once(exc)
+        return 0, []
     except Exception as exc:
-        log.warning('FCM tick skipped (credentials): %s', exc)
+        log.warning('FCM token refresh failed (unclassified): %s', exc)
         return 0, []
     url = (
         'https://fcm.googleapis.com/v1/projects/'

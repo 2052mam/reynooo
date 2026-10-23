@@ -1663,6 +1663,7 @@ def admin_audit(secret_path):
 def admin_settings(secret_path):
     from app.services import app_settings
     settings = app_settings.get_upload_settings()
+    auth_methods = app_settings.get_auth_methods()
     csrf = _csrf_token()
     global_cap_mb = (current_app.config.get('MAX_CONTENT_LENGTH') or 0) // (
         1024 * 1024)
@@ -1709,7 +1710,39 @@ def admin_settings(secret_path):
             f'<td>{e(app_settings.format_mb(int(item["max_mb"] * 1024 * 1024)))}'
             f' مگابایت</td><td>{clear}</td></tr>')
 
+    registration_sms = ' selected' if auth_methods['registration_method'] == 'sms' else ''
+    registration_totp = ' selected' if auth_methods['registration_method'] == 'totp' else ''
+    login_sms = ' selected' if auth_methods['login_priority'] == 'sms' else ''
+    login_totp = ' selected' if auth_methods['login_priority'] == 'totp' else ''
+    auth_policy_form = f"""
+<div class="card"><h2>روش ثبت‌نام و ورود</h2>
+<p class="stat-label" style="margin-bottom:12px">ثبت‌نام پیامکی، مالکیت شماره را
+تأیید می‌کند. ثبت‌نام با Google Authenticator کد پیامک نمی‌فرستد و شمارهٔ واردشده
+تأییدشده محسوب نمی‌شود؛ کاربر برنامه را روی دستگاه خودش ثبت و کد یک‌بارمصرف را
+تأیید می‌کند. در اولویت ورود با Authenticator، حساب‌های فاقد Authenticator همچنان
+می‌توانند از مسیر پیامک استفاده کنند؛ شمارهٔ تأییدشده برای حساب‌های دارای
+Authenticator نیز مسیر بازیابی پیامکی است. کاربران ثبت‌نام‌شده با Authenticator
+می‌توانند پس از ورود، شمارهٔ خود را برای بازیابی تأیید کنند. پنل مدیریت هرگز کدها
+یا رازهای کاربران را نمایش نمی‌دهد.</p>
+<form method="post" action="/{secret_path}/settings/auth-methods">
+<input type="hidden" name="csrf_token" value="{csrf}">
+<div class="grid2">
+<label>ثبت‌نام
+<select name="registration_method" style="display:block;width:100%;margin-top:6px">
+<option value="sms"{registration_sms}>پیامک (SMS)</option>
+<option value="totp"{registration_totp}>Google Authenticator</option>
+</select></label>
+<label>اولویت ورود
+<select name="login_priority" style="display:block;width:100%;margin-top:6px">
+<option value="sms"{login_sms}>پیامک (SMS)</option>
+<option value="totp"{login_totp}>Google Authenticator</option>
+</select></label>
+</div><div style="margin-top:14px"><button class="btn" type="submit">ذخیره روش‌ها</button></div>
+</form></div>
+"""
+
     body = f"""
+{auth_policy_form}
 <div class="stats">
 {stat(_human_bytes(total_size), 'حجم کل فایل‌ها')}
 {stat(f'{global_cap_mb} MB', 'سقف کلی سرور (env)')}
@@ -1765,6 +1798,24 @@ def admin_settings_save(secret_path):
     db.session.commit()
     return _flash_redirect(secret_path, 'settings', 'ok',
                            'تنظیمات آپلود ذخیره شد')
+
+
+@admin_web_bp.route('/<path:secret_path>/settings/auth-methods', methods=['POST'])
+@admin_required
+def admin_auth_methods_save(secret_path):
+    from app.services import app_settings
+    try:
+        policy = app_settings.save_auth_methods(
+            registration_method=request.form.get('registration_method', ''),
+            login_priority=request.form.get('login_priority', ''),
+        )
+    except ValueError as error:
+        return _flash_redirect(secret_path, 'settings', 'err', str(error))
+    _audit('admin_update_auth_methods', 'settings', 'authentication',
+           new_value=str(policy))
+    db.session.commit()
+    return _flash_redirect(secret_path, 'settings', 'ok',
+                           'روش ثبت‌نام و ورود ذخیره شد')
 
 
 @admin_web_bp.route('/<path:secret_path>/settings/user-limit', methods=['POST'])

@@ -325,3 +325,154 @@ def test_resend_rate_limit_and_totp_setup_requires_a_session(app, client):
     })
     assert too_soon.status_code == 429
     assert client.post('/api/v1/auth/2fa/setup', json={}).status_code in {401, 422}
+
+
+def test_authenticator_registration_is_private_and_activates_only_after_totp(app, client):
+    from app.services import app_settings
+
+    delivered = []
+    app.config['SMS_SENDER'] = lambda mobile, code: delivered.append((mobile, code))
+    with app.app_context():
+        app_settings.save_auth_methods(
+            registration_method='totp', login_priority='totp')
+
+    registration = register(client, email='totp-register@example.test',
+                            username='totp_register')
+    assert registration.status_code == 201
+    assert registration.json['verification_method'] == 'totp'
+    assert registration.json['totp_secret']
+    assert registration.json['totp_uri'].startswith('otpauth://totp/')
+    assert not delivered
+    with app.app_context():
+        user = User.query.filter_by(email='totp-register@example.test').one()
+        assert user.is_active is False
+        assert user.mobile_verified_at is None
+        assert user.is_2fa_enabled is False
+
+    verified = client.post('/api/v1/auth/verify-totp-registration', json={
+        'verification_id': registration.json['verification_id'],
+        'code': pyotp.TOTP(registration.json['totp_secret']).now(),
+        'device_info': device('totp-registration-device'),
+    })
+    assert verified.status_code == 200
+    assert verified.json['access_token']
+    with app.app_context():
+        user = User.query.filter_by(email='totp-register@example.test').one()
+        challenge = db.session.get(PhoneVerification,
+                                  registration.json['verification_id'])
+        assert user.is_active is True
+        assert user.is_2fa_enabled is True
+        # TOTP proves authenticator possession, never ownership of the phone.
+        assert user.mobile_verified_at is None
+        assert challenge.consumed_at is not None
+
+    login = client.post('/api/v1/auth/login', json={
+        'email': 'totp-register@example.test',
+        'password': 'Password-123!',
+        'totp_code': pyotp.TOTP(registration.json['totp_secret']).now(),
+        'device_info': device('totp-password-login'),
+    })
+    assert login.status_code == 200
+
+
+def test_totp_priority_keeps_sms_fallback_for_users_without_totp(app, client):
+    from app.services import app_settings
+
+    delivered = []
+    app.config['SMS_SENDER'] = lambda mobile, code: delivered.append((mobile, code))
+    with app.app_context():
+        app_settings.save_auth_methods(
+            registration_method='sms', login_priority='totp')
+        user = User(
+            id='sms-fallback-user', email='sms-fallback@example.test',
+            username='sms_fallback', display_name='SMS fallback',
+            mobile_number='+989121234567', mobile_verified_at=datetime.utcnow(),
+            totp_secret=pyotp.random_base32(), is_2fa_enabled=False,
+        )
+        user.set_password('Password-123!')
+        db.session.add(user)
+        db.session.commit()
+
+    password_login = client.post('/api/v1/auth/login', json={
+        'email': 'sms-fallback@example.test', 'password': 'Password-123!',
+        'device_info': device('sms-fallback-device'),
+    })
+    assert password_login.status_code == 400
+    assert password_login.json['require_phone'] is True
+
+    requested = client.post('/api/v1/auth/request-phone-code', json={
+        'mobile_number': '+989121234567',
+    })
+    assert requested.status_code == 202
+    assert delivered
+    verified = client.post('/api/v1/auth/verify-phone', json={
+        'verification_id': requested.json['verification_id'],
+        'code': delivered[-1][1],
+        'device_info': device('sms-fallback-device'),
+    })
+    assert verified.status_code == 200
+    assert verified.json['access_token']
+
+
+def test_totp_registration_owner_can_verify_phone_for_sms_recovery(app, client):
+    from app.services import app_settings
+
+    delivered = []
+    app.config['SMS_SENDER'] = lambda mobile, code: delivered.append((mobile, code))
+    with app.app_context():
+        app_settings.save_auth_methods(
+            registration_method='totp', login_priority='totp')
+    registration = register(client, email='totp-recovery@example.test',
+                            username='totp_recovery')
+    signed_in = client.post('/api/v1/auth/verify-totp-registration', json={
+        'verification_id': registration.json['verification_id'],
+        'code': pyotp.TOTP(registration.json['totp_secret']).now(),
+        'device_info': device('totp-recovery-device'),
+    })
+    headers = {'Authorization': f"Bearer {signed_in.json['access_token']}"}
+
+    # Recovery actions require the account owner's authenticated session.
+    assert client.post('/api/v1/auth/request-phone-recovery-code').status_code in {401, 422}
+    sent = client.post('/api/v1/auth/request-phone-recovery-code',
+                       headers=headers, json={})
+    assert sent.status_code == 202
+    assert sent.json['mobile_number'].startswith('+989')
+    assert delivered
+    verified = client.post('/api/v1/auth/verify-phone-recovery',
+                           headers=headers, json={
+        'verification_id': sent.json['verification_id'],
+        'code': delivered[-1][1],
+    })
+    assert verified.status_code == 200
+    with app.app_context():
+        user = User.query.filter_by(email='totp-recovery@example.test').one()
+        assert user.mobile_verified_at is not None
+
+    # Once verified, SMS is a user-controlled fallback if the authenticator is
+    # unavailable; the login response never includes the code or secret.
+    login_code = client.post('/api/v1/auth/request-phone-code', json={
+        'mobile_number': '+989121234567',
+    })
+    assert login_code.status_code == 202
+    fallback = client.post('/api/v1/auth/verify-phone', json={
+        'verification_id': login_code.json['verification_id'],
+        'code': latest_code(app, delivered),
+        'device_info': device('totp-sms-fallback'),
+    })
+    assert fallback.status_code == 200
+    assert fallback.json['access_token']
+    assert 'totp_secret' not in fallback.json
+
+
+def test_auth_methods_endpoint_exposes_policy_but_no_secrets(app, client):
+    from app.services import app_settings
+
+    with app.app_context():
+        app_settings.save_auth_methods(
+            registration_method='totp', login_priority='totp')
+    response = client.get('/api/v1/auth/methods')
+    assert response.status_code == 200
+    assert response.json == {
+        'registration_method': 'totp', 'login_priority': 'totp',
+    }
+    assert 'secret' not in response.get_data(as_text=True).lower()

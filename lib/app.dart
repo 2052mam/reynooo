@@ -15,14 +15,14 @@ import 'presentation/screens/auth/login_screen.dart';
 import 'presentation/screens/chat/chat_screen.dart';
 import 'presentation/screens/home/main_shell.dart';
 
-class SecureMessengerApp extends ConsumerStatefulWidget {
-  const SecureMessengerApp({super.key});
+class ReynoApp extends ConsumerStatefulWidget {
+  const ReynoApp({super.key});
 
   @override
-  ConsumerState<SecureMessengerApp> createState() => _SecureMessengerAppState();
+  ConsumerState<ReynoApp> createState() => _ReynoAppState();
 }
 
-class _SecureMessengerAppState extends ConsumerState<SecureMessengerApp> {
+class _ReynoAppState extends ConsumerState<ReynoApp> {
   bool _launchHandled = false;
   bool _bgStarted = false;
 
@@ -110,7 +110,7 @@ class _SecureMessengerAppState extends ConsumerState<SecureMessengerApp> {
       // navigator key would reparent the old route stack and break this.)
       key: ValueKey(userId ?? 'signed-out'),
       navigatorKey: _navigatorKey,
-      title: 'SecureMessenger',
+      title: 'Reyno',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,

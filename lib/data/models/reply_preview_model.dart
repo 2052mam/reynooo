@@ -10,6 +10,7 @@ class ReplyPreviewModel extends Equatable {
   final String? mediaUrl;
   final bool isViewOnce;
   final bool isUnavailable;
+  final bool mediaExpired;
 
   const ReplyPreviewModel({
     required this.id,
@@ -20,6 +21,7 @@ class ReplyPreviewModel extends Equatable {
     this.mediaUrl,
     this.isViewOnce = false,
     this.isUnavailable = false,
+    this.mediaExpired = false,
   });
 
   const ReplyPreviewModel.unavailable(this.id)
@@ -29,7 +31,8 @@ class ReplyPreviewModel extends Equatable {
       content = null,
       mediaUrl = null,
       isViewOnce = false,
-      isUnavailable = true;
+      isUnavailable = true,
+      mediaExpired = false;
 
   factory ReplyPreviewModel.fromJson(Map<String, dynamic> json) {
     final id = json['id'] as String;
@@ -45,6 +48,7 @@ class ReplyPreviewModel extends Equatable {
       content: isViewOnce ? null : json['content'] as String?,
       mediaUrl: isViewOnce ? null : json['media_url'] as String?,
       isViewOnce: isViewOnce,
+      mediaExpired: json['media_expired'] as bool? ?? false,
     );
   }
 
@@ -57,6 +61,7 @@ class ReplyPreviewModel extends Equatable {
         'media_url': mediaUrl,
         'is_view_once': isViewOnce,
         'is_unavailable': isUnavailable,
+        'media_expired': mediaExpired,
       };
 
   @override
@@ -69,5 +74,6 @@ class ReplyPreviewModel extends Equatable {
     mediaUrl,
     isViewOnce,
     isUnavailable,
+    mediaExpired,
   ];
 }

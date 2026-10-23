@@ -37,6 +37,8 @@ class ReplyPreview extends StatelessWidget {
         ? labels.unavailable
         : reply.isViewOnce
         ? labels.viewOnce
+        : reply.mediaExpired
+        ? '${labels.mediaExpired}${caption.isEmpty ? '' : ' · $caption'}'
         : reply.messageType == 'text' && caption.isNotEmpty
         ? caption
         : '${labels.type(reply.messageType)}${caption.isEmpty ? '' : ' · $caption'}';

@@ -73,6 +73,33 @@ void main() {
     expect(message.asReplyPreview.mediaUrl, isNull);
   });
 
+  test('Expired media is retained in message and reply preview models', () {
+    final message = MessageModel.fromJson({
+      ...base,
+      'message_type': 'image',
+      'media_id': 'expired-id',
+      'media_url': null,
+      'media_expired': true,
+    });
+    expect(message.mediaExpired, isTrue);
+    expect(message.asReplyPreview.mediaExpired, isTrue);
+    expect(message.asReplyPreview.mediaUrl, isNull);
+
+    final quote = ReplyPreviewModel.fromJson({
+      'id': 'expired-id',
+      'message_type': 'image',
+      'content': 'caption retained',
+      'media_url': null,
+      'media_expired': true,
+    });
+    expect(quote.mediaExpired, isTrue);
+    expect(quote.content, 'caption retained');
+    expect(
+      ReplyPreviewModel.fromJson(quote.toJson()).mediaExpired,
+      isTrue,
+    );
+  });
+
   test('View-once and quote changes participate in message equality', () {
     final message = MessageModel.fromJson(base);
     expect(message.copyWith(viewedAt: DateTime(2026, 9, 7)), isNot(message));

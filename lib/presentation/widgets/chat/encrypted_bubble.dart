@@ -40,15 +40,18 @@ class _EncryptedBubbleState extends State<EncryptedBubble> {
   bool _unlocking = false;
   String? _error;
 
+  String _t(String en, String fa) =>
+      Localizations.localeOf(context).languageCode == 'fa' ? fa : en;
+
   Future<void> _askPassword() async {
     final ctrl = TextEditingController();
     final password = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Row(children: [
-          Icon(Icons.lock_outline, size: 20, color: Colors.amber),
-          SizedBox(width: 8),
-          Text('پیام رمزدار'),
+        title: Row(children: [
+          const Icon(Icons.lock_outline, size: 20, color: Colors.amber),
+          const SizedBox(width: 8),
+          Text(_t('Password-protected message', 'پیام رمزدار')),
         ]),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -62,25 +65,25 @@ class _EncryptedBubbleState extends State<EncryptedBubble> {
                   color: Colors.amber.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Text('راهنما: ${widget.message.encryptionHint}',
+                child: Text('${_t('Hint', 'راهنما')}: ${widget.message.encryptionHint}',
                     style: const TextStyle(fontSize: 12)),
               ),
             TextField(
               controller: ctrl,
               obscureText: true,
               autofocus: true,
-              decoration: const InputDecoration(
-                labelText: 'رمز پیام',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.key_outlined),
+              decoration: InputDecoration(
+                labelText: _t('Message password', 'رمز پیام'),
+                border: const OutlineInputBorder(),
+                prefixIcon: const Icon(Icons.key_outlined),
               ),
               onSubmitted: (_) => Navigator.pop(ctx, ctrl.text),
             ),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('لغو')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, ctrl.text), child: const Text('باز کردن')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(_t('Cancel', 'لغو'))),
+          FilledButton(onPressed: () => Navigator.pop(ctx, ctrl.text), child: Text(_t('Unlock', 'باز کردن'))),
         ],
       ),
     );
@@ -104,12 +107,12 @@ class _EncryptedBubbleState extends State<EncryptedBubble> {
         final token = StorageService.getToken();
         final res = await http.get(Uri.parse(url),
             headers: {if (token != null) 'Authorization': 'Bearer $token'});
-        if (res.statusCode != 200) throw Exception('دانلود فایل ناموفق بود');
+        if (res.statusCode != 200) throw Exception(_t('Could not download the file.', 'دانلود فایل ناموفق بود'));
         final plain = EncryptionService.decryptBytes(res.bodyBytes, password);
         if (mounted) setState(() => _decryptedMedia = plain);
       }
     } catch (_) {
-      if (mounted) setState(() => _error = 'رمز نادرست است یا فایل آسیب دیده');
+      if (mounted) setState(() => _error = _t('Wrong password or damaged file.', 'رمز نادرست است یا فایل آسیب دیده'));
     } finally {
       if (mounted) setState(() => _unlocking = false);
     }
@@ -128,7 +131,7 @@ class _EncryptedBubbleState extends State<EncryptedBubble> {
           Row(children: [
             const Icon(Icons.lock_open_outlined, size: 14, color: Colors.green),
             const SizedBox(width: 4),
-            Text('رمزگشایی شد', style: TextStyle(fontSize: 10, color: fg.withValues(alpha: 0.7))),
+            Text(_t('Decrypted', 'رمزگشایی شد'), style: TextStyle(fontSize: 10, color: fg.withValues(alpha: 0.7))),
           ]),
           const SizedBox(height: 4),
           MessageText(
@@ -157,10 +160,10 @@ class _EncryptedBubbleState extends State<EncryptedBubble> {
         children: [
           const Icon(Icons.lock_open_outlined, size: 32, color: Colors.green),
           const SizedBox(height: 6),
-          Text('فایل رمزگشایی شد (${_decryptedMedia!.length} بایت)',
+          Text(_t('File decrypted (${_decryptedMedia!.length} bytes)', 'فایل رمزگشایی شد (${_decryptedMedia!.length} بایت)'),
               style: TextStyle(color: fg, fontSize: 12)),
           const SizedBox(height: 4),
-          Text('برای مشاهده، فایل را ذخیره کنید',
+          Text(_t('Save the file to view it.', 'برای مشاهده، فایل را ذخیره کنید'),
               style: TextStyle(color: fg.withValues(alpha: 0.7), fontSize: 11)),
         ],
       );
@@ -192,15 +195,15 @@ class _EncryptedBubbleState extends State<EncryptedBubble> {
             ),
             const SizedBox(height: 8),
             Text(
-              msg.messageType == 'text' ? 'پیام رمزدار' : 'فایل رمزدار (${_typeName(msg.messageType)})',
+              msg.messageType == 'text' ? _t('Password-protected message', 'پیام رمزدار') : _t('Password-protected file (${_typeName(msg.messageType)})', 'فایل رمزدار (${_typeName(msg.messageType)})'),
               style: TextStyle(color: fg, fontWeight: FontWeight.w700, fontSize: 13),
             ),
             const SizedBox(height: 4),
-            Text('برای مشاهده، رمز را وارد کنید',
+            Text(_t('Enter the password to view this message.', 'برای مشاهده، رمز را وارد کنید'),
                 style: TextStyle(color: fg.withValues(alpha: 0.7), fontSize: 11)),
             if (msg.encryptionHint?.isNotEmpty == true) ...[
               const SizedBox(height: 4),
-              Text('راهنما: ${msg.encryptionHint}',
+              Text('${_t('Hint', 'راهنما')}: ${msg.encryptionHint}',
                   style: TextStyle(color: fg.withValues(alpha: 0.6), fontSize: 10),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
@@ -219,16 +222,16 @@ class _EncryptedBubbleState extends State<EncryptedBubble> {
   String _typeName(String t) {
     switch (t) {
       case 'image':
-        return 'عکس';
+        return _t('Photo', 'عکس');
       case 'video':
-        return 'ویدیو';
+        return _t('Video', 'ویدیو');
       case 'voice':
-        return 'ویس';
+        return _t('Voice message', 'ویس');
       case 'audio':
       case 'music':
-        return 'موسیقی';
+        return _t('Audio', 'موسیقی');
       default:
-        return 'فایل';
+        return _t('File', 'فایل');
     }
   }
 }
@@ -252,6 +255,9 @@ class _EncryptDialogState extends State<EncryptDialog> {
   final _hintCtrl = TextEditingController();
   bool _obscure = true;
 
+  String _t(String en, String fa) =>
+      Localizations.localeOf(context).languageCode == 'fa' ? fa : en;
+
   @override
   void dispose() {
     _passCtrl.dispose();
@@ -262,24 +268,24 @@ class _EncryptDialogState extends State<EncryptDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Row(children: [
-        Icon(Icons.enhanced_encryption_outlined, color: Colors.amber),
-        SizedBox(width: 8),
-        Text('پیام رمزدار'),
+      title: Row(children: [
+        const Icon(Icons.enhanced_encryption_outlined, color: Colors.amber),
+        const SizedBox(width: 8),
+        Text(_t('Password-protected message', 'پیام رمزدار')),
       ]),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Text(
-            'پیام با رمز شما قفل می‌شود. بدون رمز (حتی با دسترسی به گوشی) قابل خواندن نیست. رمز را فراموش نکنید!',
-            style: TextStyle(fontSize: 12, color: Colors.grey),
+          Text(
+            _t('Your message is locked with a password and cannot be read without it, even with access to your phone. Do not forget the password!', 'پیام با رمز شما قفل می‌شود. بدون رمز (حتی با دسترسی به گوشی) قابل خواندن نیست. رمز را فراموش نکنید!'),
+            style: const TextStyle(fontSize: 12, color: Colors.grey),
           ),
           const SizedBox(height: 12),
           TextField(
             controller: _passCtrl,
             obscureText: _obscure,
             decoration: InputDecoration(
-              labelText: 'رمز (حداقل ۴ کاراکتر)',
+              labelText: _t('Password (at least 4 characters)', 'رمز (حداقل ۴ کاراکتر)'),
               border: const OutlineInputBorder(),
               prefixIcon: const Icon(Icons.key_outlined),
               suffixIcon: IconButton(
@@ -291,21 +297,21 @@ class _EncryptDialogState extends State<EncryptDialog> {
           const SizedBox(height: 12),
           TextField(
             controller: _hintCtrl,
-            decoration: const InputDecoration(
-              labelText: 'راهنمای رمز (اختیاری، عمومی)',
-              border: OutlineInputBorder(),
-              prefixIcon: Icon(Icons.lightbulb_outline),
+            decoration: InputDecoration(
+              labelText: _t('Password hint (optional, visible to recipient)', 'راهنمای رمز (اختیاری، عمومی)'),
+              border: const OutlineInputBorder(),
+              prefixIcon: const Icon(Icons.lightbulb_outline),
             ),
           ),
         ],
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('لغو')),
+        TextButton(onPressed: () => Navigator.pop(context), child: Text(_t('Cancel', 'لغو'))),
         FilledButton(
           onPressed: () {
             if (_passCtrl.text.length < 4) {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('رمز حداقل ۴ کاراکتر باشد')),
+                SnackBar(content: Text(_t('Password must be at least 4 characters.', 'رمز حداقل ۴ کاراکتر باشد'))),
               );
               return;
             }
@@ -314,7 +320,7 @@ class _EncryptDialogState extends State<EncryptDialog> {
               'hint': _hintCtrl.text.trim().isEmpty ? null : _hintCtrl.text.trim(),
             });
           },
-          child: const Text('قفل و ارسال'),
+          child: Text(_t('Lock and send', 'قفل و ارسال')),
         ),
       ],
     );

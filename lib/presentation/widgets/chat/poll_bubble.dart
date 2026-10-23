@@ -29,31 +29,38 @@ class PollBubble extends StatelessWidget {
   final VoidCallback? onShowVoters;
   final bool busy;
 
-  String get _subtitle {
+  String _subtitle(bool isFa) {
     if (poll.isClosed) {
-      return poll.isQuiz ? 'آزمون بسته شد' : 'نظرسنجی بسته شد';
+      return poll.isQuiz
+          ? (isFa ? 'آزمون بسته شد' : 'Quiz closed')
+          : (isFa ? 'نظرسنجی بسته شد' : 'Poll closed');
     }
-    if (poll.isQuiz) return 'آزمون';
+    if (poll.isQuiz) return isFa ? 'آزمون' : 'Quiz';
     if (poll.allowsMultipleAnswers) {
       return poll.isAnonymous
-          ? 'نظرسنجی ناشناس · چند گزینه‌ای'
-          : 'نظرسنجی عمومی · چند گزینه‌ای';
+          ? (isFa ? 'نظرسنجی ناشناس · چند گزینه‌ای' : 'Anonymous · multiple answers')
+          : (isFa ? 'نظرسنجی عمومی · چند گزینه‌ای' : 'Public · multiple answers');
     }
-    return poll.isAnonymous ? 'نظرسنجی ناشناس' : 'نظرسنجی عمومی';
+    return poll.isAnonymous
+        ? (isFa ? 'نظرسنجی ناشناس' : 'Anonymous poll')
+        : (isFa ? 'نظرسنجی عمومی' : 'Public poll');
   }
 
-  String get _votesLabel {
+  String _votesLabel(bool isFa) {
     if (poll.totalVoters == 0) {
-      return poll.isQuiz ? 'هنوز کسی پاسخ نداده' : 'هنوز کسی رأی نداده';
+      return poll.isQuiz
+          ? (isFa ? 'هنوز کسی پاسخ نداده' : 'No answers yet')
+          : (isFa ? 'هنوز کسی رأی نداده' : 'No votes yet');
     }
     return poll.isQuiz
-        ? '${poll.totalVoters} پاسخ'
-        : '${poll.totalVoters} رأی';
+        ? (isFa ? '${poll.totalVoters} پاسخ' : '${poll.totalVoters} answers')
+        : (isFa ? '${poll.totalVoters} رأی' : '${poll.totalVoters} votes');
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isFa = Localizations.localeOf(context).languageCode == 'fa';
     final accent = isMine ? Colors.white : theme.colorScheme.primary;
     final muted = foreground.withValues(alpha: 0.72);
     final showResults = poll.showsResults;
@@ -86,9 +93,9 @@ class PollBubble extends StatelessWidget {
                     color: const Color(0xFF8B5CF6).withValues(alpha: 0.18),
                     borderRadius: BorderRadius.circular(6),
                   ),
-                  child: const Text(
-                    'Quiz',
-                    style: TextStyle(
+                  child: Text(
+                    isFa ? 'آزمون' : 'Quiz',
+                    style: const TextStyle(
                       color: Color(0xFF8B5CF6),
                       fontSize: 10,
                       fontWeight: FontWeight.w700,
@@ -99,7 +106,7 @@ class PollBubble extends StatelessWidget {
           ),
           const SizedBox(height: 3),
           Text(
-            _subtitle,
+            _subtitle(isFa),
             style: TextStyle(color: muted, fontSize: 11.5),
           ),
           const SizedBox(height: 12),
@@ -112,6 +119,7 @@ class PollBubble extends StatelessWidget {
               foreground: foreground,
               showResults: showResults,
               enabled: !busy && !poll.isClosed && onVote != null,
+              isFa: isFa,
               onTap: () => onVote?.call(option.id),
             ),
           const SizedBox(height: 6),
@@ -154,28 +162,28 @@ class PollBubble extends StatelessWidget {
                 )
               else
                 Text(
-                  _votesLabel,
+                  _votesLabel(isFa),
                   style: TextStyle(color: muted, fontSize: 11.5, fontWeight: FontWeight.w500),
                 ),
               const Spacer(),
               if (!poll.isAnonymous && poll.totalVoters > 0 && onShowVoters != null)
                 _PollAction(
                   key: const ValueKey('poll-voters'),
-                  label: 'رأی‌دهندگان',
+                  label: isFa ? 'رأی‌دهندگان' : 'Voters',
                   color: accent,
                   onTap: busy ? null : onShowVoters,
                 ),
               if (poll.canRetract && onRetract != null)
                 _PollAction(
                   key: const ValueKey('poll-retract'),
-                  label: 'حذف رأی',
+                  label: isFa ? 'حذف رأی' : 'Retract vote',
                   color: accent,
                   onTap: busy ? null : onRetract,
                 ),
               if (poll.canClose && onClose != null)
                 _PollAction(
                   key: const ValueKey('poll-close'),
-                  label: 'بستن',
+                  label: isFa ? 'بستن' : 'Close',
                   color: accent,
                   onTap: busy ? null : onClose,
                 ),
@@ -196,6 +204,7 @@ class _PollOptionRow extends StatelessWidget {
     required this.foreground,
     required this.showResults,
     required this.enabled,
+    required this.isFa,
     required this.onTap,
   });
 
@@ -205,6 +214,7 @@ class _PollOptionRow extends StatelessWidget {
   final Color foreground;
   final bool showResults;
   final bool enabled;
+  final bool isFa;
   final VoidCallback onTap;
 
   @override
@@ -258,7 +268,7 @@ class _PollOptionRow extends StatelessWidget {
                   ),
                   if (showResults)
                     Text(
-                      '${option.percent}٪',
+                      '${option.percent}${isFa ? '٪' : '%'}',
                       textDirection: TextDirection.ltr,
                       style: TextStyle(
                         color: foreground.withValues(alpha: 0.85),

@@ -30,6 +30,9 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
   String? _error;
   bool _pinMoving = false;
 
+  String _t(String en, String fa) =>
+      Localizations.localeOf(context).languageCode == 'fa' ? fa : en;
+
   @override
   void initState() {
     super.initState();
@@ -64,7 +67,10 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
     } else {
       setState(() {
         _locating = false;
-        _error = LocationService.messageFor(result.failure!, isFa: true);
+        _error = LocationService.messageFor(
+          result.failure!,
+          isFa: Localizations.localeOf(context).languageCode == 'fa',
+        );
       });
       if (result.failure == LocationFailure.deniedForever) {
         _promptSettings(appSettings: true);
@@ -78,20 +84,20 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
     final open = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('دسترسی موقعیت مکانی'),
+        title: Text(_t('Location access', 'دسترسی موقعیت مکانی')),
         content: Text(
           appSettings
-              ? 'دسترسی موقعیت مکانی رد شده است. برای ارسال لوکیشن، آن را از تنظیمات برنامه فعال کنید.'
-              : 'موقعیت‌یاب دستگاه خاموش است. برای ارسال لوکیشن آن را روشن کنید.',
+              ? _t('Location access was denied. Enable it in app settings to share your location.', 'دسترسی موقعیت مکانی رد شده است. برای ارسال لوکیشن، آن را از تنظیمات برنامه فعال کنید.')
+              : _t('Location services are off. Turn them on to share your location.', 'موقعیت‌یاب دستگاه خاموش است. برای ارسال لوکیشن آن را روشن کنید.'),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('بعداً'),
+            child: Text(_t('Not now', 'بعداً')),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('باز کردن تنظیمات'),
+            child: Text(_t('Open settings', 'باز کردن تنظیمات')),
           ),
         ],
       ),
@@ -121,26 +127,26 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Padding(
-              padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
               child: Text(
-                'تا چه مدت موقعیت شما به‌اشتراک گذاشته شود؟',
-                style: TextStyle(fontWeight: FontWeight.w600),
+                _t('How long do you want to share your location?', 'تا چه مدت موقعیت شما به‌اشتراک گذاشته شود؟'),
+                style: const TextStyle(fontWeight: FontWeight.w600),
               ),
             ),
             ListTile(
               leading: const Icon(Icons.timer_outlined),
-              title: const Text('۱۵ دقیقه'),
+              title: Text(_t('15 minutes', '۱۵ دقیقه')),
               onTap: () => Navigator.pop(ctx, 15),
             ),
             ListTile(
               leading: const Icon(Icons.timer_outlined),
-              title: const Text('۱ ساعت'),
+              title: Text(_t('1 hour', '۱ ساعت')),
               onTap: () => Navigator.pop(ctx, 60),
             ),
             ListTile(
               leading: const Icon(Icons.timer_outlined),
-              title: const Text('۸ ساعت'),
+              title: Text(_t('8 hours', '۸ ساعت')),
               onTap: () => Navigator.pop(ctx, 480),
             ),
             const SizedBox(height: 8),
@@ -156,10 +162,10 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
     final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('ارسال موقعیت مکانی'),
+        title: Text(_t('Share location', 'ارسال موقعیت مکانی')),
         actions: [
           IconButton(
-            tooltip: 'عنوان مکان',
+            tooltip: _t('Place name', 'عنوان مکان'),
             icon: const Icon(Icons.edit_location_alt_outlined),
             onPressed: _editTitle,
           ),
@@ -253,7 +259,7 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
                             ),
                             TextButton(
                               onPressed: _locate,
-                              child: const Text('تلاش مجدد'),
+                              child: Text(_t('Try again', 'تلاش مجدد')),
                             ),
                           ],
                         ),
@@ -282,7 +288,7 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
                             children: [
                               Text(
                                 _titleCtrl.text.trim().isEmpty
-                                    ? 'مکان انتخاب‌شده'
+                                    ? _t('Selected location', 'مکان انتخاب‌شده')
                                     : _titleCtrl.text.trim(),
                                 style: const TextStyle(
                                     fontWeight: FontWeight.w600, fontSize: 13),
@@ -309,7 +315,7 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
                           child: FilledButton.icon(
                             onPressed: () => _submit(live: false),
                             icon: const Icon(Icons.send_rounded, size: 18),
-                            label: const Text('ارسال این موقعیت'),
+                            label: Text(_t('Send this location', 'ارسال این موقعیت')),
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -317,17 +323,17 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
                           child: OutlinedButton.icon(
                             onPressed: _hasFix ? _chooseLiveDuration : null,
                             icon: const Icon(Icons.share_location, size: 18),
-                            label: const Text('موقعیت زنده'),
+                            label: Text(_t('Live location', 'موقعیت زنده')),
                           ),
                         ),
                       ],
                     ),
                     if (!_hasFix)
-                      const Padding(
-                        padding: EdgeInsets.only(top: 6),
+                      Padding(
+                        padding: const EdgeInsets.only(top: 6),
                         child: Text(
-                          'برای ارسال «موقعیت زنده» ابتدا موقعیت فعلی خود را دریافت کنید.',
-                          style: TextStyle(fontSize: 10, color: Colors.grey),
+                          _t('Get your current location first to share your live location.', 'برای ارسال «موقعیت زنده» ابتدا موقعیت فعلی خود را دریافت کنید.'),
+                          style: const TextStyle(fontSize: 10, color: Colors.grey),
                           textAlign: TextAlign.center,
                         ),
                       ),
@@ -346,21 +352,21 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
     final value = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('عنوان مکان'),
+        title: Text(_t('Place name', 'عنوان مکان')),
         content: TextField(
           controller: ctrl,
           autofocus: true,
-          decoration: const InputDecoration(
-            hintText: 'مثلاً: کافه، منزل، محل قرار...',
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            hintText: _t('For example: cafe, home, meeting place...', 'مثلاً: کافه، منزل، محل قرار...'),
+            border: const OutlineInputBorder(),
           ),
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx), child: const Text('لغو')),
+              onPressed: () => Navigator.pop(ctx), child: Text(_t('Cancel', 'لغو'))),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, ctrl.text.trim()),
-            child: const Text('تأیید'),
+            child: Text(_t('Confirm', 'تأیید')),
           ),
         ],
       ),

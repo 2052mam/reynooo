@@ -9,13 +9,13 @@ final localeProvider = StateNotifierProvider<LocaleNotifier, Locale>((ref) {
 });
 
 class LocaleNotifier extends StateNotifier<Locale> {
-  LocaleNotifier() : super(const Locale('fa', 'IR')) {
+  LocaleNotifier() : super(const Locale('en', 'US')) {
     _load();
   }
 
   Future<void> _load() async {
     final prefs = await SharedPreferences.getInstance();
-    final code = prefs.getString('locale') ?? 'fa';
+    final code = prefs.getString('locale') ?? 'en';
     // Point 5: keep the context-free mirror in step, so notifications and
     // other services speak the same language as the UI.
     AppLocale.set(code);

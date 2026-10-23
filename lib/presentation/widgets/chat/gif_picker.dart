@@ -30,6 +30,9 @@ class _GifPickerState extends State<GifPicker> {
   String? _error;
   final _searchCtrl = TextEditingController();
 
+  String _t(String en, String fa) =>
+      Localizations.localeOf(context).languageCode == 'fa' ? fa : en;
+
   @override
   void initState() {
     super.initState();
@@ -111,13 +114,13 @@ class _GifPickerState extends State<GifPicker> {
           _uploading = false;
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('گیف به کتابخانه اضافه شد')),
+          SnackBar(content: Text(_t('GIF added to your library.', 'گیف به کتابخانه اضافه شد'))),
         );
       }
     } catch (e) {
       if (mounted) {
         setState(() => _uploading = false);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('افزودن گیف ناموفق: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(_t('Could not add GIF: $e', 'افزودن گیف ناموفق: $e'))));
       }
     }
   }
@@ -130,7 +133,7 @@ class _GifPickerState extends State<GifPicker> {
         _applyFilter();
       });
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('گیف حذف شد')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(_t('GIF removed.', 'گیف حذف شد'))));
       }
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
@@ -148,14 +151,14 @@ class _GifPickerState extends State<GifPicker> {
               const Icon(Icons.gif_box_outlined, size: 48, color: Colors.grey),
               const SizedBox(height: 12),
               Text(
-                _saved.isEmpty ? 'هنوز گیفی ذخیره نکرده‌اید' : 'نتیجه‌ای یافت نشد',
+                _saved.isEmpty ? _t('You have not saved any GIFs yet.', 'هنوز گیفی ذخیره نکرده‌اید') : _t('No results found.', 'نتیجه‌ای یافت نشد'),
                 style: const TextStyle(color: Colors.grey),
               ),
               const SizedBox(height: 8),
-              const Text(
-                'گیف‌های دانلودشده از اینترنت را با «افزودن گیف» به کتابخانه اضافه کنید، سپس برای ارسال لمس کنید.',
+              Text(
+                _t('Add GIFs downloaded from the internet to your library using “Add GIF”, then tap one to send it.', 'گیف‌های دانلودشده از اینترنت را با «افزودن گیف» به کتابخانه اضافه کنید، سپس برای ارسال لمس کنید.'),
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 12, color: Colors.grey),
+                style: const TextStyle(fontSize: 12, color: Colors.grey),
               ),
               const SizedBox(height: 14),
               FilledButton.icon(
@@ -163,7 +166,7 @@ class _GifPickerState extends State<GifPicker> {
                 icon: _uploading
                     ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                     : const Icon(Icons.add, size: 18),
-                label: Text(_uploading ? 'در حال آپلود...' : 'افزودن گیف (.gif)'),
+                label: Text(_uploading ? _t('Uploading...', 'در حال آپلود...') : _t('Add GIF (.gif)', 'افزودن گیف (.gif)')),
               ),
             ],
           ),
@@ -263,15 +266,15 @@ class _GifPickerState extends State<GifPicker> {
             child: Row(children: [
               const Icon(Icons.gif_box_outlined, color: Colors.blue),
               const SizedBox(width: 8),
-              const Expanded(
-                  child: Text('گیف‌های من', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15))),
-              IconButton(tooltip: 'بروزرسانی', onPressed: _loadSaved, icon: const Icon(Icons.refresh, size: 20)),
+              Expanded(
+                  child: Text(_t('My GIFs', 'گیف‌های من'), style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15))),
+              IconButton(tooltip: _t('Refresh', 'بروزرسانی'), onPressed: _loadSaved, icon: const Icon(Icons.refresh, size: 20)),
               FilledButton.icon(
                 onPressed: _uploading ? null : _addGif,
                 icon: _uploading
                     ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                     : const Icon(Icons.add, size: 16),
-                label: const Text('افزودن'),
+                label: Text(_t('Add', 'افزودن')),
                 style: FilledButton.styleFrom(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   textStyle: const TextStyle(fontSize: 12),
@@ -284,11 +287,11 @@ class _GifPickerState extends State<GifPicker> {
             child: TextField(
               controller: _searchCtrl,
               onChanged: (_) => setState(_applyFilter),
-              decoration: const InputDecoration(
-                hintText: 'جستجو در گیف‌های ذخیره‌شده...',
+              decoration: InputDecoration(
+                hintText: _t('Search saved GIFs...', 'جستجو در گیف‌های ذخیره‌شده...'),
                 prefixIcon: Icon(Icons.search, size: 20),
-                border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
-                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                border: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 isDense: true,
               ),
             ),
@@ -305,21 +308,21 @@ class _GifPickerState extends State<GifPicker> {
                           child: Column(mainAxisSize: MainAxisSize.min, children: [
                             Text(_error!, style: const TextStyle(color: Colors.red, fontSize: 12)),
                             const SizedBox(height: 8),
-                            TextButton(onPressed: _loadSaved, child: const Text('تلاش مجدد')),
+                            TextButton(onPressed: _loadSaved, child: Text(_t('Try again', 'تلاش مجدد'))),
                           ]),
                         ),
                       )
                     : _grid(),
           ),
           const Divider(height: 1),
-          const Padding(
-            padding: EdgeInsets.fromLTRB(12, 8, 12, 12),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
             child: Row(children: [
-              Icon(Icons.info_outline, size: 14, color: Colors.grey),
-              SizedBox(width: 6),
+              const Icon(Icons.info_outline, size: 14, color: Colors.grey),
+              const SizedBox(width: 6),
               Expanded(
-                  child: Text('فقط گیف‌های خودتان نمایش داده می‌شود. فایل .gif دانلودشده را اضافه کنید.',
-                      style: TextStyle(fontSize: 11, color: Colors.grey))),
+                  child: Text(_t('Only your saved GIFs are shown. Add a downloaded .gif file to your library.', 'فقط گیف‌های خودتان نمایش داده می‌شود. فایل .gif دانلودشده را اضافه کنید.'),
+                      style: const TextStyle(fontSize: 11, color: Colors.grey))),
             ]),
           ),
         ],

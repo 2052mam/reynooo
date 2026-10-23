@@ -18,8 +18,24 @@ class ChatLabels {
   String get copy => isFa ? 'کپی متن' : 'Copy text';
   String get copied => isFa ? 'متن کپی شد' : 'Text copied';
   String get copyFailed => isFa ? 'کپی متن ناموفق بود' : 'Could not copy text';
+  String get downloadSaveToDevice => isFa ? 'دانلود / ذخیره در دستگاه' : 'Download / save to device';
+  String get edit => isFa ? 'ویرایش' : 'Edit';
+  String get forwardingDisabled => isFa ? 'فوروارد غیرفعال است' : 'Forwarding is disabled';
+  String get forwardingDisabledByAdmin => isFa
+      ? 'مدیر فوروارد از این گفتگو را بسته است'
+      : 'An administrator has disabled forwarding in this chat';
   String get deleteForMe => isFa ? 'حذف برای من' : 'Delete for me';
   String get deleteForAll => isFa ? 'حذف برای همه' : 'Delete for everyone';
+  String get deleteChatForAllWarning => isFa
+      ? 'گفتگو و تمام تاریخچه‌ی آن برای هر دو طرف حذف می‌شود و قابل بازگشت نیست.'
+      : 'The chat and its entire history will be deleted for both people. This cannot be undone.';
+  String get deleteChatForMeWarning => isFa
+      ? 'گفتگو فقط از لیست شما حذف می‌شود. طرف مقابل همچنان به تاریخچه دسترسی دارد.'
+      : 'The chat will be removed only from your list. The other person will still have their history.';
+  String get deleteForBoth => isFa ? 'حذف برای طرف مقابل هم' : 'Also delete for the other person';
+  String get deleteHistoryForBoth => isFa
+      ? 'تاریخچه‌ی کامل برای هر دو نفر پاک می‌شود'
+      : 'The full history will be deleted for both people';
   String get invite => isFa ? 'لینک دعوت' : 'Invite link';
   String get copyLink => isFa ? 'کپی لینک' : 'Copy link';
   String get linkCopied => isFa ? 'لینک کپی شد' : 'Link copied';
@@ -132,6 +148,14 @@ class ChatLabels {
   String get deletePhoto => isFa ? 'حذف عکس' : 'Delete photo';
   String get mainPhoto => isFa ? 'عکس اصلی' : 'Main photo';
   String get noPhotos => isFa ? 'هنوز عکسی ندارید' : 'No photos yet';
+  String get cropProfilePhoto => isFa ? 'برش عکس پروفایل' : 'Crop profile photo';
+  String get confirm => isFa ? 'تأیید' : 'Confirm';
+  String get imageUnreadable => isFa ? 'این تصویر قابل خواندن نیست.' : 'This image cannot be read.';
+  String get cropSaveFailed => isFa
+      ? 'ذخیره برش انجام نشد. دوباره تلاش کنید.'
+      : 'Could not save the crop. Please try again.';
+  String get sponsoredChannels => isFa ? 'کانال‌های اسپانسرشده' : 'Sponsored channels';
+  String get advertisement => isFa ? 'تبلیغات' : 'Sponsored';
   String photoCounter(int index, int total) =>
       isFa ? '$index از $total' : '$index of $total';
 

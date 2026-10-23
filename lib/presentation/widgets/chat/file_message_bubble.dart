@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../core/utils/save_feedback.dart';
 import '../../../data/models/message_model.dart';
 import '../../../data/services/media_download_service.dart';
+import '../media/media_labels.dart';
 
 class FileMessageBubble extends StatefulWidget {
   final MessageModel message;
@@ -93,11 +94,40 @@ class _FileMessageBubbleState extends State<FileMessageBubble> {
 
   @override
   Widget build(BuildContext context) {
+    final labels = MediaLabels.of(context);
     final fileName = widget.message.originalName ??
         widget.message.content ??
-        'فایل پیوست';
+        (labels.isFa ? 'فایل پیوست' : 'Attached file');
     final fg = widget.foregroundColor;
     final fileColor = _getFileColor(fileName);
+
+    if (widget.message.mediaExpired) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: BoxDecoration(
+          color: fg.withValues(alpha: 0.06),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: fg.withValues(alpha: 0.18)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.insert_drive_file_outlined, color: fg.withValues(alpha: 0.75)),
+            const SizedBox(width: 8),
+            Flexible(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(labels.mediaExpired, style: TextStyle(color: fg, fontWeight: FontWeight.w700)),
+                  Text(labels.mediaExpiredNotice, style: TextStyle(color: fg.withValues(alpha: 0.75), fontSize: 11)),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
 
     return InkWell(
       onTap: _startDownload,
@@ -154,10 +184,12 @@ class _FileMessageBubbleState extends State<FileMessageBubble> {
                   const SizedBox(height: 3),
                   Text(
                     _downloading
-                        ? 'در حال دانلود… ${(_progress * 100).toInt()}%'
+                        ? (labels.isFa
+                            ? 'در حال دانلود… ${(_progress * 100).toInt()}%'
+                            : 'Downloading… ${(_progress * 100).toInt()}%')
                         : _downloadedPath != null
-                            ? 'ذخیره شد در حافظه'
-                            : 'برای دانلود ضربه بزنید',
+                            ? (labels.isFa ? 'ذخیره شد در حافظه' : 'Saved to device')
+                            : (labels.isFa ? 'برای دانلود ضربه بزنید' : 'Tap to download'),
                     style: TextStyle(
                       color: fg.withValues(alpha: 0.72),
                       fontSize: 11.5,

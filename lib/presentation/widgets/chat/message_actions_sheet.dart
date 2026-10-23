@@ -153,11 +153,11 @@ class MessageActionsSheet extends StatelessWidget {
                   title: labels.copy,
                   onTap: () => _copy(context),
                 ),
-              if (message.mediaId != null && !message.isViewOnce)
+              if (message.mediaId != null && !message.isViewOnce && !message.mediaExpired)
                 actionTile(
                   key: const ValueKey('download-media'),
                   icon: Icons.download_rounded,
-                  title: 'دانلود / ذخیره در دستگاه',
+                  title: labels.downloadSaveToDevice,
                   onTap: () => _download(context),
                 ),
               if (canPin && onTogglePin != null)
@@ -173,7 +173,7 @@ class MessageActionsSheet extends StatelessWidget {
                 actionTile(
                   key: const ValueKey('edit-message'),
                   icon: Icons.edit_rounded,
-                  title: 'ویرایش',
+                  title: labels.edit,
                   onTap: onEdit!,
                 ),
               if (!message.isViewOnce)
@@ -194,13 +194,13 @@ class MessageActionsSheet extends StatelessWidget {
                       ),
                       child: const Icon(Icons.block_rounded, color: Colors.grey, size: 20),
                     ),
-                    title: const Text(
-                      'فوروارد غیرفعال است',
-                      style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w600),
+                    title: Text(
+                      labels.forwardingDisabled,
+                      style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.w600),
                     ),
-                    subtitle: const Text(
-                      'مدیر فوروارد از این گفتگو را بسته است',
-                      style: TextStyle(fontSize: 11.5, color: Colors.grey),
+                    subtitle: Text(
+                      labels.forwardingDisabledByAdmin,
+                      style: const TextStyle(fontSize: 11.5, color: Colors.grey),
                     ),
                     enabled: false,
                   ),

@@ -31,6 +31,7 @@ class MessageModel extends Equatable {
   final String? content;
   final String? mediaId;
   final String? mediaUrl;
+  final bool mediaExpired;
   final String? replyToId;
   final ReplyPreviewModel? replyTo;
   final String? forwardedFromId;
@@ -81,6 +82,7 @@ class MessageModel extends Equatable {
     this.content,
     this.mediaId,
     this.mediaUrl,
+    this.mediaExpired = false,
     this.replyToId,
     this.replyTo,
     this.forwardedFromId,
@@ -141,6 +143,7 @@ class MessageModel extends Equatable {
       content: json['content'] as String?,
       mediaId: json['media_id'] as String?,
       mediaUrl: json['media_url'] as String?,
+      mediaExpired: json['media_expired'] as bool? ?? false,
       replyToId: json['reply_to_id'] as String?,
       replyTo: json['reply_to'] is Map<String, dynamic>
           ? ReplyPreviewModel.fromJson(json['reply_to'] as Map<String, dynamic>)
@@ -209,6 +212,7 @@ class MessageModel extends Equatable {
         'content': content,
         'media_id': mediaId,
         'media_url': mediaUrl,
+        'media_expired': mediaExpired,
         'reply_to_id': replyToId,
         'reply_to': replyTo?.toJson(),
         'forwarded_from_id': forwardedFromId,
@@ -245,6 +249,7 @@ class MessageModel extends Equatable {
   MessageModel copyWith({
     String? status,
     String? content,
+    bool? mediaExpired,
     bool? isViewOnce,
     bool? isSpoiler,
     bool? isScheduled,
@@ -274,6 +279,7 @@ class MessageModel extends Equatable {
       content: content ?? this.content,
       mediaId: mediaId,
       mediaUrl: mediaUrl,
+      mediaExpired: mediaExpired ?? this.mediaExpired,
       replyToId: replyToId,
       replyTo: replyTo ?? this.replyTo,
       forwardedFromId: forwardedFromId,
@@ -318,10 +324,11 @@ class MessageModel extends Equatable {
     senderName: sender?.displayName,
     messageType: messageType,
     content: isViewOnce || isEncrypted ? null : content,
-    mediaUrl: isViewOnce || isEncrypted || messageType != 'image'
+    mediaUrl: isViewOnce || isEncrypted || mediaExpired || messageType != 'image'
         ? null
         : mediaUrl ?? (mediaId == null ? null : '/api/v1/media/$mediaId'),
     isViewOnce: isViewOnce,
+    mediaExpired: mediaExpired,
   );
 
   @override
@@ -337,6 +344,7 @@ class MessageModel extends Equatable {
     status,
     mediaId,
     mediaUrl,
+    mediaExpired,
     replyToId,
     replyTo,
     forwardedFromId,

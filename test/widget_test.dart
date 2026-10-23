@@ -26,10 +26,10 @@ void main() {
   testWidgets('Logged-out app opens sign-in (not the template counter)', (
     tester,
   ) async {
-    await tester.pumpWidget(const ProviderScope(child: SecureMessengerApp()));
+    await tester.pumpWidget(const ProviderScope(child: ReynoApp()));
     await tester.pumpAndSettle();
-    expect(find.text('ورود به SecureMessenger'), findsOneWidget);
-    expect(find.text('حساب ندارید؟ ثبت‌نام کنید'), findsOneWidget);
+    expect(find.text('Sign in to Reyno'), findsOneWidget);
+    expect(find.text('New to Reyno? Sign up'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

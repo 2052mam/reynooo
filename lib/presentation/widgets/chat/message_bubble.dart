@@ -5,6 +5,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/utils/chat_invite_link.dart';
+import '../../../core/utils/security_message_localizer.dart';
 import '../../../data/models/message_model.dart';
 import '../../../data/models/reply_preview_model.dart';
 import '../../../data/services/media_cache_service.dart';
@@ -48,6 +49,7 @@ class MessageBubble extends StatelessWidget {
   final VoidCallback? onPollClose;
   final VoidCallback? onPollShowVoters;
   final bool pollBusy;
+  final bool isSecurityChat;
 
   const MessageBubble({
     super.key,
@@ -74,6 +76,7 @@ class MessageBubble extends StatelessWidget {
     this.onPollClose,
     this.onPollShowVoters,
     this.pollBusy = false,
+    this.isSecurityChat = false,
   });
 
   @override
@@ -81,6 +84,9 @@ class MessageBubble extends StatelessWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final labels = MediaLabels.of(context);
+    final displayContent = isSecurityChat && message.content != null
+        ? SecurityMessageLocalizer.localize(message.content!, isFa: labels.isFa)
+        : message.content;
 
     // Color psychology: Outgoing gets confident sapphire gradient; incoming gets crisp resting neutral
     final bg = isMine
@@ -92,7 +98,8 @@ class MessageBubble extends StatelessWidget {
         ((message.messageType == 'image' || message.messageType == 'video') &&
             mediaUrl.isNotEmpty) ||
         message.messageType == 'voice' ||
-        message.messageType == 'audio';
+        message.messageType == 'audio' ||
+        message.mediaExpired;
     final hasCaption =
         !message.isViewOnce &&
         rendersMedia &&
@@ -189,7 +196,7 @@ class MessageBubble extends StatelessWidget {
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
-                          'مدیر',
+                          labels.isFa ? 'مدیر' : 'Admin',
                           style: TextStyle(
                             color: isDark ? const Color(0xFF64B5F6) : const Color(0xFF0284C7),
                             fontSize: 10,
@@ -235,6 +242,11 @@ class MessageBubble extends StatelessWidget {
               )
             else if (message.isLocation)
               LocationBubble(message: message, isMine: isMine)
+            else if (message.mediaExpired)
+              _ExpiredMediaTile(
+                messageType: message.messageType,
+                foreground: fg,
+              )
             else if (message.isViewOnce)
               _ViewOnceTile(
                 viewed: message.viewedAt != null,
@@ -287,12 +299,12 @@ class MessageBubble extends StatelessWidget {
                         color: Colors.black54,
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: const Row(
+                      child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.volume_off_rounded, size: 12, color: Colors.white),
-                          SizedBox(width: 4),
-                          Text('بی‌صدا', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w600)),
+                          const Icon(Icons.volume_off_rounded, size: 12, color: Colors.white),
+                          const SizedBox(width: 4),
+                          Text(labels.isFa ? 'بی‌صدا' : 'Muted', style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w600)),
                         ],
                       ),
                     ),
@@ -318,7 +330,7 @@ class MessageBubble extends StatelessWidget {
                   : SpoilerWidget(
                       isSpoiler: message.isSpoiler,
                       child: MessageText(
-                        text: 'ویدیو مسیج ${message.content ?? ''}'.trim(),
+                        text: '${labels.isFa ? 'ویدیو مسیج' : 'Video message'} ${message.content ?? ''}'.trim(),
                         style: TextStyle(color: fg, fontSize: 14),
                         linkColor: isMine ? Colors.white : theme.colorScheme.primary,
                         onInviteTap: onInviteTap,
@@ -341,12 +353,12 @@ class MessageBubble extends StatelessWidget {
                           child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
                         ),
                         errorWidget: (_, __, ___) => Text(
-                          message.content ?? 'استیکر',
+                          message.content ?? (labels.isFa ? 'استیکر' : 'Sticker'),
                           style: const TextStyle(fontSize: 48),
                         ),
                       ),
                     )
-                  : Text(message.content ?? 'استیکر', style: TextStyle(fontSize: 48, color: fg))
+                  : Text(message.content ?? (labels.isFa ? 'استیکر' : 'Sticker'), style: TextStyle(fontSize: 48, color: fg))
             else if (message.messageType == 'gif')
               mediaUrl.isNotEmpty
                   ? ClipRRect(
@@ -430,8 +442,8 @@ class MessageBubble extends StatelessWidget {
               SpoilerWidget(
                 isSpoiler: message.isSpoiler,
                 child: MessageText(
-                  text: message.content?.isNotEmpty == true
-                      ? message.content!
+                  text: displayContent?.isNotEmpty == true
+                      ? displayContent!
                       : labels.type(message.messageType),
                   style: TextStyle(
                     color: fg,
@@ -448,7 +460,7 @@ class MessageBubble extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.only(top: 7),
                 child: MessageText(
-                  text: message.content!,
+                  text: displayContent!,
                   style: TextStyle(color: fg, fontSize: 14.5),
                   linkColor: isMine ? Colors.white : theme.colorScheme.primary,
                   onInviteTap: onInviteTap,
@@ -471,7 +483,7 @@ class MessageBubble extends StatelessWidget {
                           Icon(Icons.forward_rounded, size: 11, color: isMine ? Colors.white70 : const Color(0xFF64748B)),
                           const SizedBox(width: 2),
                           Text(
-                            'فوروارد شده',
+                            labels.isFa ? 'فوروارد شده' : 'Forwarded',
                             style: TextStyle(color: isMine ? Colors.white70 : const Color(0xFF64748B), fontSize: 10),
                           ),
                         ],
@@ -481,7 +493,7 @@ class MessageBubble extends StatelessWidget {
                     Padding(
                       padding: const EdgeInsets.only(left: 4),
                       child: Text(
-                        'ویرایش شده',
+                        labels.isFa ? 'ویرایش شده' : 'Edited',
                         style: TextStyle(
                           color: isMine ? Colors.white70 : const Color(0xFF64748B),
                           fontSize: 10,
@@ -626,6 +638,62 @@ class _BubbleImageState extends State<_BubbleImage> {
   }
 }
 
+class _ExpiredMediaTile extends StatelessWidget {
+  const _ExpiredMediaTile({
+    required this.messageType,
+    required this.foreground,
+  });
+
+  final String messageType;
+  final Color foreground;
+
+  @override
+  Widget build(BuildContext context) {
+    final IconData icon = switch (messageType) {
+      'video' || 'video_note' || 'round_video' => Icons.videocam_off_outlined,
+      'voice' || 'audio' || 'music' => Icons.audiotrack_rounded,
+      'file' => Icons.insert_drive_file_outlined,
+      _ => Icons.image_not_supported_outlined,
+    };
+    return Container(
+      constraints: const BoxConstraints(minWidth: 190, maxWidth: 270),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: foreground.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: foreground.withValues(alpha: 0.18)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: foreground.withValues(alpha: 0.75), size: 24),
+          const SizedBox(width: 10),
+          Flexible(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  MediaLabels.of(context).mediaExpired,
+                  style: TextStyle(color: foreground, fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  MediaLabels.of(context).mediaExpiredNotice,
+                  style: TextStyle(
+                    color: foreground.withValues(alpha: 0.78),
+                    fontSize: 11,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _ViewOnceTile extends StatelessWidget {
   final bool viewed;
   final bool expired;
@@ -648,10 +716,12 @@ class _ViewOnceTile extends StatelessWidget {
     final labels = MediaLabels.of(context);
     final timed = (viewDuration ?? 0) > 0;
     final title = timed
-        ? 'عکس زمان‌دار ($viewDuration ثانیه)'
+        ? (labels.isFa
+            ? 'عکس زمان‌دار ($viewDuration ثانیه)'
+            : 'Timed photo ($viewDuration seconds)')
         : (viewed ? labels.viewed : labels.viewOnce);
     final subtitle = expired
-        ? 'این عکس منقضی شده است'
+        ? (labels.isFa ? 'این عکس منقضی شده است' : 'This photo has expired')
         : (isMine ? labels.sentOnce : labels.tapToOpen);
 
     return Semantics(
