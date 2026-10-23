@@ -183,9 +183,9 @@ class _BackgroundConnectionScreenState
                   ),
                   const SizedBox(height: 8),
                   if (!Platform.isAndroid)
-                    const Card(
+                    Card(
                       child: Padding(
-                        padding: EdgeInsets.all(16),
+                        padding: const EdgeInsets.all(16),
                         child: Text(
                           AppLocale.pick('سرویس نگه‌دارنده اتصال مخصوص اندروید است.', 'The keep-alive connection service is available on Android only.'),
                           style: TextStyle(fontSize: 13),
@@ -313,8 +313,8 @@ class _BackgroundConnectionScreenState
                           ),
                   ),
                   const Divider(),
-                  const Padding(
-                    padding: EdgeInsets.all(8),
+                  Padding(
+                    padding: const EdgeInsets.all(8),
                     child: Text(
                       AppLocale.pick('نکته باتری: این اتصال هر ~۲۰ ثانیه یک بررسی سبک انجام می‌دهد؛ مصرف آن در حد نگه‌داشتن اتصال تلگرام است. اعلان فوری (پوش) در صورت فعال بودن، بیدارسازی را سریع‌تر می‌کند؛ بدون آن هم اتصال بالا به‌تنهایی کار می‌کند، پس تحریم و فیلترینگ اثری روی آن ندارد.', 'Battery note: background connection performs a lightweight check about every 20 seconds. Push notifications can wake the app faster when available; background connection works independently.'),
                       style: TextStyle(fontSize: 12, color: Colors.grey),
