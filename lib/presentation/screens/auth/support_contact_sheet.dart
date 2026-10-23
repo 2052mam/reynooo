@@ -58,6 +58,19 @@ class _SupportContactSheetState extends State<_SupportContactSheet> {
   bool _sending = false;
   String? _error;
 
+  String _label(String en, String fa) =>
+      Localizations.localeOf(context).languageCode == 'fa' ? fa : en;
+
+  String _topicTitle(Map<String, String> topic) => switch (topic['id']) {
+    'code_not_received' => _label('I did not receive a verification code', 'کد تأیید را دریافت نکردم'),
+    'login_problem' => _label('Trouble signing in', 'مشکل در ورود به حساب'),
+    'account_locked' => _label('My account is locked or restricted', 'حساب من قفل یا محدود شده'),
+    'lost_number' => _label('I no longer have my old phone number', 'به شماره قبلی دسترسی ندارم'),
+    'bug_report' => _label('Report a bug', 'گزارش اشکال'),
+    'abuse' => _label('Report abuse', 'گزارش سوءاستفاده'),
+    _ => _label('Other', 'موضوع دیگر'),
+  };
+
   @override
   void initState() {
     super.initState();
@@ -120,7 +133,7 @@ class _SupportContactSheetState extends State<_SupportContactSheet> {
       if (mounted) setState(() => _error = error.message);
     } catch (_) {
       if (mounted) {
-        setState(() => _error = 'ارسال پیام به پشتیبانی ممکن نشد. دوباره تلاش کنید.');
+        setState(() => _error = _label('Could not send your support request. Please try again.', 'ارسال پیام به پشتیبانی ممکن نشد. دوباره تلاش کنید.'));
       }
     } finally {
       if (mounted) setState(() => _sending = false);
@@ -161,7 +174,7 @@ class _SupportContactSheetState extends State<_SupportContactSheet> {
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      'تماس با پشتیبانی',
+                      _label('Contact support', 'تماس با پشتیبانی'),
                       style: Theme.of(context)
                           .textTheme
                           .titleLarge
@@ -171,43 +184,42 @@ class _SupportContactSheetState extends State<_SupportContactSheet> {
                 ],
               ),
               const SizedBox(height: 6),
-              const Text(
-                'اگر کد ورود را دریافت نمی‌کنید یا نمی‌توانید وارد شوید، مشکل را '
-                'اینجا بنویسید. پاسخ پشتیبانی به همین شماره اطلاع داده می‌شود.',
-                style: TextStyle(fontSize: 13, color: Colors.grey),
+              Text(
+                _label('If you did not receive a sign-in code or cannot sign in, describe the problem here. Support will reply to this phone number.', 'اگر کد ورود را دریافت نمی‌کنید یا نمی‌توانید وارد شوید، مشکل را اینجا بنویسید. پاسخ پشتیبانی به همین شماره اطلاع داده می‌شود.'),
+                style: const TextStyle(fontSize: 13, color: Colors.grey),
               ),
               const SizedBox(height: 18),
               TextFormField(
                 controller: _mobileCtrl,
                 keyboardType: TextInputType.phone,
-                decoration: const InputDecoration(
-                  labelText: 'شماره موبایل شما',
-                  prefixIcon: Icon(Icons.phone_outlined),
+                decoration: InputDecoration(
+                  labelText: _label('Your phone number', 'شماره موبایل شما'),
+                  prefixIcon: const Icon(Icons.phone_outlined),
                 ),
                 validator: (value) =>
-                    _validPhone(value ?? '') ? null : 'شماره موبایل نامعتبر است',
+                    _validPhone(value ?? '') ? null : _label('Invalid phone number', 'شماره موبایل نامعتبر است'),
               ),
               const SizedBox(height: 12),
               TextFormField(
                 controller: _nameCtrl,
                 textCapitalization: TextCapitalization.words,
-                decoration: const InputDecoration(
-                  labelText: 'نام شما (اختیاری)',
-                  prefixIcon: Icon(Icons.person_outline),
+                decoration: InputDecoration(
+                  labelText: _label('Your name (optional)', 'نام شما (اختیاری)'),
+                  prefixIcon: const Icon(Icons.person_outline),
                 ),
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
                 initialValue: _topic,
                 isExpanded: true,
-                decoration: const InputDecoration(
-                  labelText: 'موضوع',
-                  prefixIcon: Icon(Icons.topic_outlined),
+                decoration: InputDecoration(
+                  labelText: _label('Topic', 'موضوع'),
+                  prefixIcon: const Icon(Icons.topic_outlined),
                 ),
                 items: _topics
                     .map((topic) => DropdownMenuItem(
                           value: topic['id'],
-                          child: Text(topic['title']!,
+                          child: Text(_topicTitle(topic),
                               overflow: TextOverflow.ellipsis),
                         ))
                     .toList(),
@@ -220,12 +232,12 @@ class _SupportContactSheetState extends State<_SupportContactSheet> {
                 controller: _messageCtrl,
                 maxLines: 4,
                 maxLength: 2000,
-                decoration: const InputDecoration(
-                  labelText: 'شرح مشکل',
+                decoration: InputDecoration(
+                  labelText: _label('Describe the problem', 'شرح مشکل'),
                   alignLabelWithHint: true,
                 ),
                 validator: (value) => (value ?? '').trim().length < 5
-                    ? 'لطفاً مشکل را کمی کامل‌تر بنویسید'
+                    ? _label('Please add a little more detail.', 'لطفاً مشکل را کمی کامل‌تر بنویسید')
                     : null,
               ),
               if (_error != null) ...[
@@ -246,7 +258,7 @@ class _SupportContactSheetState extends State<_SupportContactSheet> {
                               strokeWidth: 2, color: Colors.white),
                         )
                       : const Icon(Icons.send_rounded, size: 18),
-                  label: Text(_sending ? 'در حال ارسال…' : 'ارسال به پشتیبانی'),
+                  label: Text(_sending ? _label('Sending…', 'در حال ارسال…') : _label('Send to support', 'ارسال به پشتیبانی')),
                 ),
               ),
             ],

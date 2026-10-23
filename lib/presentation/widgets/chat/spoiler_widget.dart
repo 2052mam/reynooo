@@ -77,7 +77,7 @@ class _SpoilerWidgetState extends State<SpoilerWidget> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    widget.label ?? 'اسپویلر (لمس کنید)',
+                    widget.label ?? (Localizations.localeOf(context).languageCode == 'fa' ? 'اسپویلر (لمس کنید)' : 'Spoiler (tap to reveal)'),
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 12,

@@ -198,7 +198,7 @@ class _ProfilePhotosScreenState extends ConsumerState<ProfilePhotosScreen> {
           if (urls.isNotEmpty)
             IconButton(
               key: const ValueKey('download-profile-photo'),
-              tooltip: 'ذخیره عکس پروفایل',
+              tooltip: labels.downloadSaveToDevice,
               icon: _downloading
                   ? const SizedBox(
                       width: 18,

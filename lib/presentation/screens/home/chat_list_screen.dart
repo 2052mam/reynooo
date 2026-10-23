@@ -16,6 +16,7 @@ import '../../providers/locale_provider.dart';
 import '../../../data/models/chat_folder_model.dart';
 import '../../../core/utils/chat_search.dart';
 import '../../../core/utils/app_locale.dart';
+import '../../../core/utils/security_message_localizer.dart';
 import '../../../data/models/chat_model.dart';
 import '../../../data/services/api_service.dart';
 import '../chat/chat_screen.dart';
@@ -802,19 +803,12 @@ class _SecurityAlertBannerState extends ConsumerState<_SecurityAlertBanner> {
     final accent = critical ? Colors.red : Colors.orange;
     final rawTitle = (alert['title'] as String?)?.trim();
     final rawBody = (alert['body'] as String?)?.trim();
-    final title = AppLocale.isFa
-        ? rawTitle
-        : (rawTitle == 'ورود جدید به حساب شما' || rawTitle == 'رویداد امنیتی در حساب شما'
-            ? 'New sign-in to your account'
-            : rawTitle ?? 'Account security alert');
-    final body = AppLocale.isFa || rawBody == null
-        ? rawBody
-        : rawBody
-            .replaceFirst('دستگاه:', 'Device:')
-            .replaceFirst('IP:', 'IP:')
-            .replaceFirst('ناشناس', 'Unknown')
-            .replaceFirst('نامشخص', 'Unknown')
-            .replaceFirst('اگر این شما نبودید، فوراً این دستگاه را حذف کنید.', 'If this was not you, remove this device immediately.');
+    final title = rawTitle == null
+        ? (AppLocale.isFa ? 'هشدار امنیتی حساب' : 'Account security alert')
+        : SecurityMessageLocalizer.localize(rawTitle, isFa: AppLocale.isFa);
+    final body = rawBody == null
+        ? null
+        : SecurityMessageLocalizer.localize(rawBody, isFa: AppLocale.isFa);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(

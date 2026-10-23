@@ -28,6 +28,9 @@ class _TwoFactorSecurityScreenState
   bool _onPrimaryDevice = true;
   bool _checkedPrimary = false;
 
+  String _label(String en, String fa) =>
+      Localizations.localeOf(context).languageCode == 'fa' ? fa : en;
+
   @override
   void initState() {
     super.initState();
@@ -76,7 +79,7 @@ class _TwoFactorSecurityScreenState
     } on ApiException catch (error) {
       if (mounted) setState(() => _error = error.message);
     } catch (_) {
-      if (mounted) setState(() => _error = 'فعال‌سازی تأیید دو مرحله‌ای ممکن نیست');
+      if (mounted) setState(() => _error = _label('Could not enable two-step verification.', 'فعال‌سازی تأیید دو مرحله‌ای ممکن نیست'));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -86,7 +89,7 @@ class _TwoFactorSecurityScreenState
     if (_loading) return;
     final code = _codeCtrl.text.trim();
     if (!RegExp(r'^\d{6}$').hasMatch(code)) {
-      setState(() => _error = 'کد ۶ رقمی Google Authenticator را وارد کنید');
+      setState(() => _error = _label('Enter your 6-digit Google Authenticator code.', 'کد ۶ رقمی Google Authenticator را وارد کنید'));
       return;
     }
     setState(() {
@@ -100,12 +103,12 @@ class _TwoFactorSecurityScreenState
       if (!mounted) return;
       _codeCtrl.clear();
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('تأیید دو مرحله‌ای غیرفعال شد')),
+        SnackBar(content: Text(_label('Two-step verification disabled.', 'تأیید دو مرحله‌ای غیرفعال شد'))),
       );
     } on ApiException catch (error) {
       if (mounted) setState(() => _error = error.message);
     } catch (_) {
-      if (mounted) setState(() => _error = 'غیرفعال‌سازی ممکن نیست');
+      if (mounted) setState(() => _error = _label('Could not disable two-step verification.', 'غیرفعال‌سازی ممکن نیست'));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -115,7 +118,7 @@ class _TwoFactorSecurityScreenState
   Widget build(BuildContext context) {
     final enabled = ref.watch(authNotifierProvider).valueOrNull?.isTwoFactorEnabled ?? false;
     return Scaffold(
-      appBar: AppBar(title: const Text('تأیید دو مرحله‌ای')),
+      appBar: AppBar(title: Text(_label('Two-step verification', 'تأیید دو مرحله‌ای'))),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -129,15 +132,15 @@ class _TwoFactorSecurityScreenState
               ),
               const SizedBox(height: 20),
               Text(
-                enabled ? 'Google Authenticator فعال است' : 'Google Authenticator اختیاری است',
+                enabled ? _label('Google Authenticator is enabled', 'Google Authenticator فعال است') : _label('Google Authenticator is optional', 'Google Authenticator اختیاری است'),
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 12),
               Text(
                 enabled
-                    ? 'پس از پیامک ورود، کد Google Authenticator نیز درخواست می‌شود.'
-                    : 'ورود معمول فقط با کد پیامک انجام می‌شود. برای امنیت بیشتر می‌توانید یک مرحله دوم اضافه کنید.',
+                    ? _label('After your sign-in SMS, you will also be asked for a Google Authenticator code.', 'پس از پیامک ورود، کد Google Authenticator نیز درخواست می‌شود.')
+                    : _label('Sign-in normally uses only an SMS code. Add a second step for stronger security.', 'ورود معمول فقط با کد پیامک انجام می‌شود. برای امنیت بیشتر می‌توانید یک مرحله دوم اضافه کنید.'),
                 textAlign: TextAlign.center,
                 style: const TextStyle(color: Colors.grey),
               ),
@@ -152,16 +155,17 @@ class _TwoFactorSecurityScreenState
                     border: Border.all(
                         color: Colors.orange.withValues(alpha: 0.3)),
                   ),
-                  child: const Row(
+                  child: Row(
                     children: [
-                      Icon(Icons.lock_outline, color: Colors.orange, size: 20),
-                      SizedBox(width: 8),
+                      const Icon(Icons.lock_outline, color: Colors.orange, size: 20),
+                      const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          'تغییر تأیید دو مرحله‌ای فقط از دستگاه اصلی حساب '
-                          'امکان‌پذیر است. از همان دستگاه وارد شوید یا در بخش '
-                          '«دستگاه‌ها» دستگاه اصلی را منتقل کنید.',
-                          style: TextStyle(fontSize: 12),
+                          _label(
+                            'Two-step verification can only be changed from your primary device. Sign in on that device, or transfer primary status in Devices.',
+                            'تغییر تأیید دو مرحله‌ای فقط از دستگاه اصلی حساب امکان‌پذیر است. از همان دستگاه وارد شوید یا در بخش «دستگاه‌ها» دستگاه اصلی را منتقل کنید.',
+                          ),
+                          style: const TextStyle(fontSize: 12),
                         ),
                       ),
                     ],
@@ -175,7 +179,7 @@ class _TwoFactorSecurityScreenState
                   icon: const Icon(Icons.add_moderator_outlined),
                   label: _loading
                       ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                      : const Text('فعال‌سازی Google Authenticator'),
+                      : Text(_label('Set up Google Authenticator', 'فعال‌سازی Google Authenticator')),
                 )
               else ...[
                 TextField(
@@ -184,14 +188,14 @@ class _TwoFactorSecurityScreenState
                   maxLength: 6,
                   textAlign: TextAlign.center,
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  decoration: const InputDecoration(labelText: 'کد ۶ رقمی برای غیرفعال‌سازی', counterText: ''),
+                  decoration: InputDecoration(labelText: _label('6-digit code to disable', 'کد ۶ رقمی برای غیرفعال‌سازی'), counterText: ''),
                   onSubmitted: (_) => _disable(),
                 ),
                 const SizedBox(height: 12),
                 OutlinedButton.icon(
                   onPressed: (_loading || !_onPrimaryDevice) ? null : _disable,
                   icon: const Icon(Icons.remove_moderator_outlined, color: Colors.red),
-                  label: const Text('غیرفعال‌سازی', style: TextStyle(color: Colors.red)),
+                  label: Text(_label('Disable', 'غیرفعال‌سازی'), style: const TextStyle(color: Colors.red)),
                 ),
               ],
               if (_error != null) ...[

@@ -41,6 +41,69 @@ def configured(monkeypatch):
     monkeypatch.setattr(push, '_config', lambda: {'project_id': 'demo'})
 
 
+def test_oauth_refresh_retries_transient_disconnect_with_bounded_timeout(monkeypatch):
+    import requests
+
+    timeouts = []
+    sleeps = []
+
+    def fake_request(url, **kwargs):
+        timeouts.append(kwargs['timeout'])
+        return object()
+
+    class Credentials:
+        token = 'refreshed-token'
+
+        def __init__(self):
+            self.attempts = 0
+
+        def refresh(self, request):
+            self.attempts += 1
+            request('https://oauth.example/token', timeout=90)
+            if self.attempts < 3:
+                raise requests.exceptions.ConnectionError(
+                    'RemoteDisconnected: remote end closed connection')
+
+    credentials = Credentials()
+    push._refresh_credentials(credentials, fake_request, sleep=sleeps.append)
+    assert credentials.attempts == 3
+    assert timeouts == [push._FCM_TIMEOUT_SECONDS] * 3
+    assert sleeps == [0.25, 0.5]
+
+
+def test_oauth_refresh_exhaustion_is_classified_as_transport_failure():
+    import requests
+
+    class Credentials:
+        def refresh(self, request):
+            request('https://oauth.example/token')
+            raise requests.exceptions.ConnectionError('connection aborted')
+
+    with pytest.raises(push.FCMRefreshTransportError):
+        push._refresh_credentials(
+            Credentials(), lambda *_args, **_kwargs: object(), sleep=lambda _: None,
+        )
+
+
+def test_send_tick_logs_oauth_transport_separately_from_bad_credentials(
+        configured, monkeypatch, caplog):
+    monkeypatch.setattr(
+        push, '_access_token',
+        lambda: (_ for _ in ()).throw(push.FCMRefreshTransportError('disconnected')),
+    )
+    assert push.send_tick(['tok'], {'kind': 'tick'}) == (0, [])
+    assert 'FCM tick skipped (OAuth transport)' in caplog.text
+    assert '(credentials)' not in caplog.text
+
+    caplog.clear()
+    monkeypatch.setattr(
+        push, '_access_token',
+        lambda: (_ for _ in ()).throw(push.FCMCredentialsError('invalid key')),
+    )
+    assert push.send_tick(['tok'], {'kind': 'tick'}) == (0, [])
+    assert 'FCM tick skipped (invalid credentials/configuration)' in caplog.text
+
+
 def test_send_tick_noop_without_config_and_without_http(monkeypatch):
     monkeypatch.setattr(push, 'push_configured', lambda: False)
 

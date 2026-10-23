@@ -26,6 +26,9 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen> {
   VideoPlayerController? _video;
   bool _paused = false;
 
+  String _t(String en, String fa) =>
+      Localizations.localeOf(context).languageCode == 'fa' ? fa : en;
+
   /// Only groups that actually have stories are navigable; an empty list is
   /// handled in [build] so these getters are never reached with bad indices.
   StoryGroup get _group =>
@@ -152,11 +155,11 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('حذف استوری'),
-        content: const Text('این استوری حذف شود؟'),
+        title: Text(_t('Delete story', 'حذف استوری')),
+        content: Text(_t('Delete this story?', 'این استوری حذف شود؟')),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('خیر')),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('حذف')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(_t('No', 'خیر'))),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text(_t('Delete', 'حذف'))),
         ],
       ),
     );
@@ -298,7 +301,7 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen> {
                       Row(children: [
                         const Icon(Icons.visibility_outlined, size: 16, color: Colors.white70),
                         const SizedBox(width: 4),
-                        Text('${story.viewsCount} بازدید',
+                        Text(_t('${story.viewsCount} views', '${story.viewsCount} بازدید'),
                             style: const TextStyle(color: Colors.white70, fontSize: 12)),
                       ]),
                     ],
@@ -361,9 +364,9 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen> {
 
   String _timeAgo(DateTime dt) {
     final diff = DateTime.now().difference(dt.toLocal());
-    if (diff.inMinutes < 1) return 'لحظاتی پیش';
-    if (diff.inMinutes < 60) return '${diff.inMinutes} دقیقه پیش';
-    if (diff.inHours < 24) return '${diff.inHours} ساعت پیش';
-    return '${diff.inDays} روز پیش';
+    if (diff.inMinutes < 1) return _t('Just now', 'لحظاتی پیش');
+    if (diff.inMinutes < 60) return _t('${diff.inMinutes} minutes ago', '${diff.inMinutes} دقیقه پیش');
+    if (diff.inHours < 24) return _t('${diff.inHours} hours ago', '${diff.inHours} ساعت پیش');
+    return _t('${diff.inDays} days ago', '${diff.inDays} روز پیش');
   }
 }

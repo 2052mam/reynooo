@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/utils/chat_list_time.dart';
+import '../../../core/utils/security_message_localizer.dart';
 import '../../../data/models/chat_model.dart';
 import '../../../data/services/storage_service.dart';
 import 'chat_avatar.dart';
@@ -50,7 +51,10 @@ class ChatListTile extends StatelessWidget {
         subtitle = (last.content?.isNotEmpty == true ? last.content! : (isFa ? 'فایل' : 'File'));
         subtitleIcon = Icons.attach_file_rounded;
       } else {
-        subtitle = last.content ?? '';
+        final content = last.content ?? '';
+        subtitle = chat.isSecurityChat
+            ? SecurityMessageLocalizer.localize(content, isFa: isFa)
+            : content;
       }
     }
 

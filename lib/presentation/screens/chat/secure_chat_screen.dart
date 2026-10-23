@@ -42,6 +42,9 @@ class _SecureChatScreenState extends ConsumerState<SecureChatScreen> {
   Timer? _pollTimer;
   Future<void> Function()? _releasePrivacy;
 
+  String _label(String en, String fa) =>
+      Localizations.localeOf(context).languageCode == 'fa' ? fa : en;
+
   /// Secure history is a separate stream on the backend (`?secure=1`).
   static const _secureQuery = {'secure': '1'};
 
@@ -115,8 +118,7 @@ class _SecureChatScreenState extends ConsumerState<SecureChatScreen> {
         setState(_messages.clear);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-                content: Text('گفتگوی امن توسط طرف مقابل پاک شد')),
+            SnackBar(content: Text(_label('The other person cleared the secure chat.', 'گفتگوی امن توسط طرف مقابل پاک شد'))),
           );
         }
         return;
@@ -182,14 +184,14 @@ class _SecureChatScreenState extends ConsumerState<SecureChatScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: Colors.grey.shade900,
-        title: const Text('حذف پیام', style: TextStyle(color: Colors.white)),
-        content: const Text('این پیام از گفتگوی امن پاک شود؟',
-            style: TextStyle(color: Colors.white70)),
+        title: Text(_label('Delete message', 'حذف پیام'), style: const TextStyle(color: Colors.white)),
+        content: Text(_label('Delete this message from the secure chat?', 'این پیام از گفتگوی امن پاک شود؟'),
+            style: const TextStyle(color: Colors.white70)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('لغو')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(_label('Cancel', 'لغو'))),
           TextButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('حذف', style: TextStyle(color: Colors.red))),
+              child: Text(_label('Delete', 'حذف'), style: const TextStyle(color: Colors.red))),
         ],
       ),
     );
@@ -211,20 +213,20 @@ class _SecureChatScreenState extends ConsumerState<SecureChatScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Padding(
-              padding: EdgeInsets.all(12),
+            Padding(
+              padding: const EdgeInsets.all(12),
               child: Row(children: [
-                Icon(Icons.shield_outlined, color: Colors.greenAccent, size: 18),
-                SizedBox(width: 8),
+                const Icon(Icons.shield_outlined, color: Colors.greenAccent, size: 18),
+                const SizedBox(width: 8),
                 Expanded(
-                  child: Text('حالت امن: فوروارد، کپی و دانلود غیرفعال است',
-                      style: TextStyle(color: Colors.white70, fontSize: 12)),
+                  child: Text(_label('Secure mode: forwarding, copying, and downloads are disabled.', 'حالت امن: فوروارد، کپی و دانلود غیرفعال است'),
+                      style: const TextStyle(color: Colors.white70, fontSize: 12)),
                 ),
               ]),
             ),
             ListTile(
               leading: const Icon(Icons.delete_outline, color: Colors.red),
-              title: const Text('حذف پیام', style: TextStyle(color: Colors.white)),
+              title: Text(_label('Delete message', 'حذف پیام'), style: const TextStyle(color: Colors.white)),
               onTap: () {
                 Navigator.pop(ctx);
                 _deleteForMe(msg);
@@ -247,19 +249,18 @@ class _SecureChatScreenState extends ConsumerState<SecureChatScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: Colors.grey.shade900,
-        title: const Text('پایان و پاک‌سازی گفتگوی امن',
-            style: TextStyle(color: Colors.white)),
-        content: const Text(
-          'تمام پیام‌های این گفتگوی امن برای هر دو طرف حذف می‌شود و قابل بازیابی نیست. '
-          'گفتگوی عادی شما دست‌نخورده باقی می‌ماند.',
-          style: TextStyle(color: Colors.white70),
+        title: Text(_label('End and erase secure chat', 'پایان و پاک‌سازی گفتگوی امن'),
+            style: const TextStyle(color: Colors.white)),
+        content: Text(
+          _label('All messages in this secure chat will be deleted for both people and cannot be recovered. Your regular chat will remain unchanged.', 'تمام پیام‌های این گفتگوی امن برای هر دو طرف حذف می‌شود و قابل بازیابی نیست. گفتگوی عادی شما دست‌نخورده باقی می‌ماند.'),
+          style: const TextStyle(color: Colors.white70),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('لغو')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(_label('Cancel', 'لغو'))),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('پاک‌سازی و خروج'),
+            child: Text(_label('Erase and leave', 'پاک‌سازی و خروج')),
           ),
         ],
       ),
@@ -270,7 +271,7 @@ class _SecureChatScreenState extends ConsumerState<SecureChatScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('پاک‌سازی ناموفق: $e')));
+            .showSnackBar(SnackBar(content: Text(_label('Could not erase chat: $e', 'پاک‌سازی ناموفق: $e'))));
       }
       return;
     }
@@ -293,30 +294,30 @@ class _SecureChatScreenState extends ConsumerState<SecureChatScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Padding(
-              padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
               child: Text(
-                'از گفتگوی امن خارج می‌شوید',
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+                _label('Leave the secure chat', 'از گفتگوی امن خارج می‌شوید'),
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
               ),
             ),
             ListTile(
               leading: const Icon(Icons.chevron_left, color: Colors.greenAccent),
-              title: const Text('بازگشت به گفتگوی عادی',
-                  style: TextStyle(color: Colors.white)),
-              subtitle: const Text(
-                'گفتگوی امن باز می‌ماند و هر وقت خواستید برمی‌گردید',
-                style: TextStyle(color: Colors.white54, fontSize: 11),
+              title: Text(_label('Return to regular chat', 'بازگشت به گفتگوی عادی'),
+                  style: const TextStyle(color: Colors.white)),
+              subtitle: Text(
+                _label('The secure chat stays open; you can return whenever you want.', 'گفتگوی امن باز می‌ماند و هر وقت خواستید برمی‌گردید'),
+                style: const TextStyle(color: Colors.white54, fontSize: 11),
               ),
               onTap: () => Navigator.pop(ctx, 'keep'),
             ),
             ListTile(
               leading: const Icon(Icons.delete_forever, color: Colors.red),
-              title: const Text('پایان و پاک‌سازی کامل',
-                  style: TextStyle(color: Colors.white)),
-              subtitle: const Text(
-                'همه پیام‌های امن برای هر دو طرف حذف می‌شود',
-                style: TextStyle(color: Colors.white54, fontSize: 11),
+              title: Text(_label('End and erase completely', 'پایان و پاک‌سازی کامل'),
+                  style: const TextStyle(color: Colors.white)),
+              subtitle: Text(
+                _label('All secure messages will be deleted for both people.', 'همه پیام‌های امن برای هر دو طرف حذف می‌شود'),
+                style: const TextStyle(color: Colors.white54, fontSize: 11),
               ),
               onTap: () => Navigator.pop(ctx, 'erase'),
             ),
@@ -348,7 +349,7 @@ class _SecureChatScreenState extends ConsumerState<SecureChatScreen> {
           foregroundColor: Colors.white,
           leading: IconButton(
             icon: const Icon(Icons.arrow_back),
-            tooltip: 'بازگشت به گفتگوی عادی',
+            tooltip: _label('Return to regular chat', 'بازگشت به گفتگوی عادی'),
             onPressed: _onBack,
           ),
           title: Row(children: [
@@ -362,15 +363,15 @@ class _SecureChatScreenState extends ConsumerState<SecureChatScreen> {
                       style: const TextStyle(fontSize: 15),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis),
-                  const Text('گفتگوی امن • ضد اسکرین‌شات',
-                      style: TextStyle(fontSize: 11, color: Colors.greenAccent)),
+                  Text(_label('Secure chat • screenshot protection', 'گفتگوی امن • ضد اسکرین‌شات'),
+                      style: const TextStyle(fontSize: 11, color: Colors.greenAccent)),
                 ],
               ),
             ),
           ]),
           actions: [
             IconButton(
-              tooltip: 'پایان و پاک‌سازی گفتگوی امن',
+              tooltip: _label('End and erase secure chat', 'پایان و پاک‌سازی گفتگوی امن'),
               icon: const Icon(Icons.delete_forever, color: Colors.redAccent),
               onPressed: _endAndErase,
             ),
@@ -383,13 +384,13 @@ class _SecureChatScreenState extends ConsumerState<SecureChatScreen> {
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 color: Colors.green.withValues(alpha: 0.12),
-                child: const Row(children: [
-                  Icon(Icons.shield_outlined, color: Colors.greenAccent, size: 16),
-                  SizedBox(width: 8),
+                child: Row(children: [
+                  const Icon(Icons.shield_outlined, color: Colors.greenAccent, size: 16),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'اسکرین‌شات، فوروارد، کپی و دانلود در این صفحه غیرفعال است',
-                      style: TextStyle(color: Colors.greenAccent, fontSize: 11),
+                      _label('Screenshots, forwarding, copying, and downloads are disabled on this screen.', 'اسکرین‌شات، فوروارد، کپی و دانلود در این صفحه غیرفعال است'),
+                      style: const TextStyle(color: Colors.greenAccent, fontSize: 11),
                     ),
                   ),
                 ]),
@@ -402,17 +403,17 @@ class _SecureChatScreenState extends ConsumerState<SecureChatScreen> {
                             child: Column(mainAxisSize: MainAxisSize.min, children: [
                               Text(_error!, style: const TextStyle(color: Colors.red, fontSize: 12)),
                               const SizedBox(height: 8),
-                              FilledButton(onPressed: _load, child: const Text('تلاش مجدد')),
+                              FilledButton(onPressed: _load, child: Text(_label('Try again', 'تلاش مجدد'))),
                             ]),
                           )
                         : _messages.isEmpty
-                            ? const Center(
+                            ? Center(
                                 child: Padding(
-                                  padding: EdgeInsets.all(24),
+                                  padding: const EdgeInsets.all(24),
                                   child: Text(
-                                    'گفتگوی امن خالی است.\nپیام‌های اینجا جدا از گفتگوی عادی ذخیره می‌شوند.',
+                                    _label('This secure chat is empty.\nMessages here are stored separately from your regular chat.', 'گفتگوی امن خالی است.\nپیام‌های اینجا جدا از گفتگوی عادی ذخیره می‌شوند.'),
                                     textAlign: TextAlign.center,
-                                    style: TextStyle(color: Colors.white38),
+                                    style: const TextStyle(color: Colors.white38),
                                   ),
                                 ),
                               )
@@ -438,7 +439,7 @@ class _SecureChatScreenState extends ConsumerState<SecureChatScreen> {
                       maxLines: 4,
                       minLines: 1,
                       decoration: InputDecoration(
-                        hintText: 'پیام امن...',
+                        hintText: _label('Secure message...', 'پیام امن...'),
                         hintStyle: const TextStyle(color: Colors.white38),
                         filled: true,
                         fillColor: Colors.white10,
@@ -487,7 +488,10 @@ class _SecureBubble extends StatelessWidget {
     final bg = isMine ? const Color(0xFF1B5E20) : const Color(0xFF212121);
     final text = message.content?.trim().isNotEmpty == true
         ? message.content!.trim()
-        : _nonTextLabel(message);
+        : _nonTextLabel(
+            message,
+            isFa: Localizations.localeOf(context).languageCode == 'fa',
+          );
     return GestureDetector(
       onLongPress: onLongPress,
       child: Align(
@@ -530,25 +534,35 @@ class _SecureBubble extends StatelessWidget {
     );
   }
 
-  String _nonTextLabel(MessageModel m) {
-    if (m.isEncrypted) return '🔒 پیام رمزدار (در گفتگوی عادی باز کنید)';
-    switch (m.messageType) {
-      case 'image':
-        return '📷 عکس (نمایش رسانه در گفتگوی امن غیرفعال است)';
-      case 'video':
-        return '🎬 ویدیو (نمایش رسانه در گفتگوی امن غیرفعال است)';
-      case 'voice':
-        return '🎤 ویس (پخش رسانه در گفتگوی امن غیرفعال است)';
-      case 'audio':
-      case 'music':
-        return '🎵 موسیقی (پخش رسانه در گفتگوی امن غیرفعال است)';
-      case 'gif':
-        return '🎞 گیف (نمایش رسانه در گفتگوی امن غیرفعال است)';
-      case 'location':
-        return '📍 موقعیت مکانی (در گفتگوی عادی باز کنید)';
-      default:
-        return '📎 فایل (دانلود در گفتگوی امن غیرفعال است)';
+  String _nonTextLabel(MessageModel m, {required bool isFa}) {
+    if (m.isEncrypted) {
+      return isFa
+          ? '🔒 پیام رمزدار (در گفتگوی عادی باز کنید)'
+          : '🔒 Password-protected message (open in regular chat)';
     }
+    return switch (m.messageType) {
+      'image' => isFa
+          ? '📷 عکس (نمایش رسانه در گفتگوی امن غیرفعال است)'
+          : '📷 Photo (media is unavailable in secure chat)',
+      'video' => isFa
+          ? '🎬 ویدیو (نمایش رسانه در گفتگوی امن غیرفعال است)'
+          : '🎬 Video (media is unavailable in secure chat)',
+      'voice' => isFa
+          ? '🎤 ویس (پخش رسانه در گفتگوی امن غیرفعال است)'
+          : '🎤 Voice message (playback is unavailable in secure chat)',
+      'audio' || 'music' => isFa
+          ? '🎵 موسیقی (پخش رسانه در گفتگوی امن غیرفعال است)'
+          : '🎵 Audio (playback is unavailable in secure chat)',
+      'gif' => isFa
+          ? '🎞 گیف (نمایش رسانه در گفتگوی امن غیرفعال است)'
+          : '🎞 GIF (media is unavailable in secure chat)',
+      'location' => isFa
+          ? '📍 موقعیت مکانی (در گفتگوی عادی باز کنید)'
+          : '📍 Location (open in regular chat)',
+      _ => isFa
+          ? '📎 فایل (دانلود در گفتگوی امن غیرفعال است)'
+          : '📎 File (downloads are disabled in secure chat)',
+    };
   }
 
   String _time(DateTime dt) {

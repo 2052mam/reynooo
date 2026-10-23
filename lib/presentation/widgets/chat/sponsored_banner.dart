@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../data/models/chat_model.dart';
 import '../../screens/chat/chat_screen.dart';
+import 'chat_labels.dart';
 
 /// Sponsored channels strip (visible to everyone, set by the general admin).
 class SponsoredBanner extends StatelessWidget {
@@ -11,6 +12,7 @@ class SponsoredBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     if (channels.isEmpty) return const SizedBox.shrink();
     final theme = Theme.of(context);
+    final labels = ChatLabels.of(context);
     return Container(
       margin: const EdgeInsets.fromLTRB(12, 8, 12, 0),
       padding: const EdgeInsets.all(12),
@@ -27,13 +29,13 @@ class SponsoredBanner extends StatelessWidget {
           Row(children: [
             const Icon(Icons.campaign_outlined, size: 18, color: Colors.amber),
             const SizedBox(width: 6),
-            Text('کانال‌های اسپانسرشده',
+            Text(labels.sponsoredChannels,
                 style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: theme.colorScheme.onSurface)),
             const Spacer(),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
               decoration: BoxDecoration(color: Colors.amber, borderRadius: BorderRadius.circular(8)),
-              child: const Text('تبلیغات', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Colors.black87)),
+              child: Text(labels.advertisement, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Colors.black87)),
             ),
           ]),
           const SizedBox(height: 8),

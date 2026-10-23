@@ -42,6 +42,9 @@ class _CreatePollScreenState extends State<CreatePollScreen> {
   bool _sending = false;
   String? _error;
 
+  String _t(String en, String fa) =>
+      Localizations.localeOf(context).languageCode == 'fa' ? fa : en;
+
   @override
   void dispose() {
     _questionCtrl.dispose();
@@ -93,7 +96,7 @@ class _CreatePollScreenState extends State<CreatePollScreen> {
       texts.add(text);
     }
     if (_quizMode && correct == null) {
-      setState(() => _error = 'گزینه صحیح را انتخاب کنید');
+      setState(() => _error = _t('Select the correct answer.', 'گزینه صحیح را انتخاب کنید'));
       return;
     }
 
@@ -126,7 +129,7 @@ class _CreatePollScreenState extends State<CreatePollScreen> {
     } catch (_) {
       if (mounted) {
         setState(() {
-          _error = 'ارسال نظرسنجی ناموفق بود';
+          _error = _t('Could not send the poll.', 'ارسال نظرسنجی ناموفق بود');
           _sending = false;
         });
       }
@@ -137,7 +140,7 @@ class _CreatePollScreenState extends State<CreatePollScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(_quizMode ? 'ساخت آزمون' : 'ساخت نظرسنجی'),
+        title: Text(_quizMode ? _t('Create quiz', 'ساخت آزمون') : _t('Create poll', 'ساخت نظرسنجی')),
         actions: [
           TextButton(
             key: const ValueKey('send-poll'),
@@ -148,7 +151,7 @@ class _CreatePollScreenState extends State<CreatePollScreen> {
                     height: 18,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : const Text('ارسال'),
+                : Text(_t('Send', 'ارسال')),
           ),
         ],
       ),
@@ -163,14 +166,14 @@ class _CreatePollScreenState extends State<CreatePollScreen> {
               maxLines: 3,
               minLines: 1,
               onChanged: (_) => setState(() {}),
-              decoration: const InputDecoration(
-                labelText: 'سؤال',
-                hintText: 'سؤال خود را بنویسید',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: _t('Question', 'سؤال'),
+                hintText: _t('Write your question', 'سؤال خود را بنویسید'),
+                border: const OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 8),
-            const Text('گزینه‌ها', style: TextStyle(fontWeight: FontWeight.bold)),
+            Text(_t('Options', 'گزینه‌ها'), style: const TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             for (var i = 0; i < _optionCtrls.length; i++)
               Padding(
@@ -191,7 +194,7 @@ class _CreatePollScreenState extends State<CreatePollScreen> {
                         maxLength: 100,
                         onChanged: (_) => setState(() {}),
                         decoration: InputDecoration(
-                          labelText: 'گزینه ${i + 1}',
+                          labelText: '${_t('Option', 'گزینه')} ${i + 1}',
                           counterText: '',
                           border: const OutlineInputBorder(),
                         ),
@@ -199,7 +202,7 @@ class _CreatePollScreenState extends State<CreatePollScreen> {
                     ),
                     if (_optionCtrls.length > CreatePollScreen.minOptions)
                       IconButton(
-                        tooltip: 'حذف گزینه',
+                        tooltip: _t('Remove option', 'حذف گزینه'),
                         icon: const Icon(Icons.remove_circle_outline),
                         onPressed: () => _removeOption(i),
                       ),
@@ -213,7 +216,7 @@ class _CreatePollScreenState extends State<CreatePollScreen> {
                   key: const ValueKey('add-poll-option'),
                   onPressed: _addOption,
                   icon: const Icon(Icons.add),
-                  label: const Text('افزودن گزینه'),
+                  label: Text(_t('Add option', 'افزودن گزینه')),
                 ),
               ),
             const Divider(height: 24),
@@ -221,8 +224,8 @@ class _CreatePollScreenState extends State<CreatePollScreen> {
               key: const ValueKey('poll-anonymous'),
               value: _anonymous,
               onChanged: (value) => setState(() => _anonymous = value),
-              title: const Text('رأی‌گیری ناشناس'),
-              subtitle: const Text('نام رأی‌دهندگان نمایش داده نمی‌شود'),
+              title: Text(_t('Anonymous voting', 'رأی‌گیری ناشناس')),
+              subtitle: Text(_t('Voter names will not be shown.', 'نام رأی‌دهندگان نمایش داده نمی‌شود')),
             ),
             SwitchListTile(
               key: const ValueKey('poll-quiz'),
@@ -232,16 +235,16 @@ class _CreatePollScreenState extends State<CreatePollScreen> {
                 if (value) _multiple = false;
                 if (!value) _correctIndex = null;
               }),
-              title: const Text('حالت آزمون'),
-              subtitle: const Text('یک گزینه صحیح دارد و پاسخ قابل تغییر نیست'),
+              title: Text(_t('Quiz mode', 'حالت آزمون')),
+              subtitle: Text(_t('One correct answer; votes cannot be changed.', 'یک گزینه صحیح دارد و پاسخ قابل تغییر نیست')),
             ),
             if (!_quizMode)
               SwitchListTile(
                 key: const ValueKey('poll-multiple'),
                 value: _multiple,
                 onChanged: (value) => setState(() => _multiple = value),
-                title: const Text('چند گزینه‌ای'),
-                subtitle: const Text('کاربر می‌تواند چند گزینه را انتخاب کند'),
+                title: Text(_t('Multiple answers', 'چند گزینه‌ای')),
+                subtitle: Text(_t('People can select more than one option.', 'کاربر می‌تواند چند گزینه را انتخاب کند')),
               ),
             if (_quizMode)
               Padding(
@@ -250,10 +253,10 @@ class _CreatePollScreenState extends State<CreatePollScreen> {
                   key: const ValueKey('poll-explanation'),
                   controller: _explanationCtrl,
                   maxLength: 200,
-                  decoration: const InputDecoration(
-                    labelText: 'توضیح پاسخ (اختیاری)',
-                    helperText: 'بعد از پاسخ دادن نمایش داده می‌شود',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: _t('Answer explanation (optional)', 'توضیح پاسخ (اختیاری)'),
+                    helperText: _t('Shown after answering.', 'بعد از پاسخ دادن نمایش داده می‌شود'),
+                    border: const OutlineInputBorder(),
                   ),
                 ),
               ),

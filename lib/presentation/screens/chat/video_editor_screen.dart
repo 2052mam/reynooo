@@ -376,12 +376,12 @@ class _VideoEditorScreenState extends State<VideoEditorScreen> {
                             ),
                           ]),
                           if (_muted)
-                            const Row(children: [
-                              Icon(Icons.volume_off,
+                            Row(children: [
+                              const Icon(Icons.volume_off,
                                   color: Colors.amber, size: 16),
-                              SizedBox(width: 6),
-                              Text('ویدیو بدون صدا ارسال می‌شود',
-                                  style: TextStyle(
+                              const SizedBox(width: 6),
+                              Text(AppLocale.pick('ویدیو بدون صدا ارسال می‌شود', 'Video will be sent without sound'),
+                                  style: const TextStyle(
                                       color: Colors.amber, fontSize: 12)),
                             ]),
                         ],

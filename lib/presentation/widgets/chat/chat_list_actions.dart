@@ -153,8 +153,8 @@ class _DeleteChatDialogState extends State<_DeleteChatDialog> {
           const SizedBox(height: 8),
           Text(
             _forAll
-                ? 'گفتگو و تمام تاریخچه‌ی آن برای هر دو طرف حذف می‌شود و قابل بازگشت نیست.'
-                : 'گفتگو فقط از لیست شما حذف می‌شود. طرف مقابل همچنان به تاریخچه دسترسی دارد.',
+                ? labels.deleteChatForAllWarning
+                : labels.deleteChatForMeWarning,
             style: const TextStyle(fontSize: 13),
           ),
           if (canDeleteForAll) ...[
@@ -162,13 +162,13 @@ class _DeleteChatDialogState extends State<_DeleteChatDialog> {
             CheckboxListTile(
               contentPadding: EdgeInsets.zero,
               controlAffinity: ListTileControlAffinity.leading,
-              title: const Text(
-                'حذف برای طرف مقابل هم',
-                style: TextStyle(fontSize: 14),
+              title: Text(
+                labels.deleteForBoth,
+                style: const TextStyle(fontSize: 14),
               ),
-              subtitle: const Text(
-                'تاریخچه‌ی کامل برای هر دو نفر پاک می‌شود',
-                style: TextStyle(fontSize: 12),
+              subtitle: Text(
+                labels.deleteHistoryForBoth,
+                style: const TextStyle(fontSize: 12),
               ),
               value: _forAll,
               activeColor: Colors.red,
@@ -185,7 +185,7 @@ class _DeleteChatDialogState extends State<_DeleteChatDialog> {
         TextButton(
           onPressed: () => Navigator.pop(context, canDeleteForAll && _forAll),
           child: Text(
-            _forAll ? 'حذف برای همه' : labels.delete,
+            _forAll ? labels.deleteForAll : labels.delete,
             style: const TextStyle(color: Colors.red),
           ),
         ),

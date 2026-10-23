@@ -51,7 +51,7 @@ class ChatHeader extends StatelessWidget {
       } else {
         final base = labels.members(membersCount!, subscribers: chatType == 'channel');
         if (onlineCount != null && onlineCount! > 0 && chatType == 'group') {
-          subtitle = '$base، $onlineCount آنلاین';
+          subtitle = '$base • $onlineCount ${labels.online}';
         } else if (onlineCount != null && onlineCount! > 0 && chatType == 'channel') {
           subtitle = base;
         } else {

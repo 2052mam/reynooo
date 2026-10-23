@@ -120,7 +120,7 @@ class PinnedMessagesBar extends StatelessWidget {
               ),
               if (pinned.length > 1)
                 IconButton(
-                  tooltip: 'همه پیام‌های پین‌شده',
+                  tooltip: labels.pinnedMessages,
                   icon: const Icon(Icons.format_list_bulleted_rounded, size: 20),
                   onPressed: onShowAll,
                 ),

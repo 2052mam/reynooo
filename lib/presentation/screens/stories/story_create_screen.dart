@@ -28,6 +28,9 @@ class _StoryCreateScreenState extends ConsumerState<StoryCreateScreen> {
   String? _error;
   VideoPlayerController? _videoCtrl;
 
+  String _t(String en, String fa) =>
+      Localizations.localeOf(context).languageCode == 'fa' ? fa : en;
+
   @override
   void initState() {
     super.initState();
@@ -97,7 +100,7 @@ class _StoryCreateScreenState extends ConsumerState<StoryCreateScreen> {
         _isVideo = video;
       });
     } catch (e) {
-      if (mounted) setState(() => _error = 'انتخاب رسانه ناموفق بود');
+      if (mounted) setState(() => _error = _t('Could not select media.', 'انتخاب رسانه ناموفق بود'));
     } finally {
       if (mounted) setState(() => _picking = false);
     }
@@ -121,7 +124,7 @@ class _StoryCreateScreenState extends ConsumerState<StoryCreateScreen> {
     if (_sending) return;
     final text = _textCtrl.text.trim();
     if (_file == null && text.isEmpty) {
-      setState(() => _error = 'متن یا عکس/ویدیو برای استوری لازم است');
+      setState(() => _error = _t('Add text or choose a photo/video for your story.', 'متن یا عکس/ویدیو برای استوری لازم است'));
       return;
     }
     setState(() {
@@ -158,11 +161,11 @@ class _StoryCreateScreenState extends ConsumerState<StoryCreateScreen> {
     final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('استوری جدید'),
+        title: Text(_t('New story', 'استوری جدید')),
         actions: [
           if (_file != null)
             IconButton(
-              tooltip: 'حذف رسانه',
+              tooltip: _t('Remove media', 'حذف رسانه'),
               icon: const Icon(Icons.delete_outline),
               onPressed: _sending ? null : _clearMedia,
             ),
@@ -220,7 +223,7 @@ class _StoryCreateScreenState extends ConsumerState<StoryCreateScreen> {
                                 size: 40, color: theme.hintColor),
                             const SizedBox(height: 8),
                             Text(
-                              'یک عکس یا ویدیو انتخاب کنید یا فقط متن بنویسید',
+                              _t('Choose a photo or video, or write a text-only story.', 'یک عکس یا ویدیو انتخاب کنید یا فقط متن بنویسید'),
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                   color: theme.hintColor, fontSize: 12),
@@ -239,21 +242,21 @@ class _StoryCreateScreenState extends ConsumerState<StoryCreateScreen> {
                                 ? null
                                 : () => _pick(ImageSource.gallery, video: false),
                             icon: const Icon(Icons.photo_library_outlined, size: 18),
-                            label: const Text('عکس از گالری'),
+                            label: Text(_t('Photo from gallery', 'عکس از گالری')),
                           ),
                           OutlinedButton.icon(
                             onPressed: _picking
                                 ? null
                                 : () => _pick(ImageSource.camera, video: false),
                             icon: const Icon(Icons.camera_alt_outlined, size: 18),
-                            label: const Text('دوربین'),
+                            label: Text(_t('Camera', 'دوربین')),
                           ),
                           OutlinedButton.icon(
                             onPressed: _picking
                                 ? null
                                 : () => _pick(ImageSource.gallery, video: true),
                             icon: const Icon(Icons.videocam_outlined, size: 18),
-                            label: const Text('ویدیو'),
+                            label: Text(_t('Video', 'ویدیو')),
                           ),
                         ],
                       ),
@@ -265,10 +268,10 @@ class _StoryCreateScreenState extends ConsumerState<StoryCreateScreen> {
                       minLines: 2,
                       maxLength: 1000,
                       textInputAction: TextInputAction.newline,
-                      decoration: const InputDecoration(
-                        labelText: 'متن استوری',
-                        hintText: 'چیزی بنویسید...',
-                        border: OutlineInputBorder(),
+                      decoration: InputDecoration(
+                        labelText: _t('Story text', 'متن استوری'),
+                        hintText: _t('Write something...', 'چیزی بنویسید...'),
+                        border: const OutlineInputBorder(),
                         alignLabelWithHint: true,
                       ),
                     ),
@@ -301,8 +304,8 @@ class _StoryCreateScreenState extends ConsumerState<StoryCreateScreen> {
                             )
                           : const Icon(Icons.send_rounded),
                       label: Text(_sending
-                          ? 'در حال انتشار...'
-                          : 'انتشار استوری (۲۴ ساعته)'),
+                          ? _t('Publishing...', 'در حال انتشار...')
+                          : _t('Publish story (24 hours)', 'انتشار استوری (۲۴ ساعته)')),
                     ),
                   ],
                 ),

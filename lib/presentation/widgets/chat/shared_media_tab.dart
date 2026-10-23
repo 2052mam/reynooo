@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../data/models/message_model.dart';
 import '../../../data/services/api_service.dart';
 import '../../../core/utils/media_utils.dart';
+import '../../../core/utils/app_locale.dart';
 import '../../screens/media/photo_viewer_screen.dart';
 import '../media/voice_message_player.dart';
 import 'file_message_bubble.dart';
@@ -88,9 +89,9 @@ class _SharedMediaSectionState extends State<SharedMediaSection>
           labelColor: Theme.of(context).primaryColor,
           unselectedLabelColor: Colors.grey,
           tabs: [
-            Tab(text: 'عکس/ویدیو (${_mediaList.length})'),
-            Tab(text: 'فایل‌ها (${_fileList.length})'),
-            Tab(text: 'صوتی (${_voiceList.length})'),
+            Tab(text: AppLocale.pick('عکس/ویدیو (${_mediaList.length})', 'Photos/Videos (${_mediaList.length})')),
+            Tab(text: AppLocale.pick('فایل‌ها (${_fileList.length})', 'Files (${_fileList.length})')),
+            Tab(text: AppLocale.pick('صوتی (${_voiceList.length})', 'Audio (${_voiceList.length})')),
           ],
         ),
         SizedBox(
@@ -114,7 +115,7 @@ class _SharedMediaSectionState extends State<SharedMediaSection>
 
   Widget _buildMediaGrid() {
     if (_mediaList.isEmpty) {
-      return const Center(child: Text('عکس یا ویدیویی وجود ندارد', style: TextStyle(color: Colors.grey)));
+      return Center(child: Text(AppLocale.pick('عکس یا ویدیویی وجود ندارد', 'No photos or videos yet'), style: const TextStyle(color: Colors.grey)));
     }
     return GridView.builder(
       padding: const EdgeInsets.all(8),
@@ -175,7 +176,7 @@ class _SharedMediaSectionState extends State<SharedMediaSection>
 
   Widget _buildFileList() {
     if (_fileList.isEmpty) {
-      return const Center(child: Text('فایلی وجود ندارد', style: TextStyle(color: Colors.grey)));
+      return Center(child: Text(AppLocale.pick('فایلی وجود ندارد', 'No files yet'), style: const TextStyle(color: Colors.grey)));
     }
     return ListView.builder(
       padding: const EdgeInsets.all(8),
@@ -199,7 +200,7 @@ class _SharedMediaSectionState extends State<SharedMediaSection>
 
   Widget _buildVoiceList() {
     if (_voiceList.isEmpty) {
-      return const Center(child: Text('پیام صوتی وجود ندارد', style: TextStyle(color: Colors.grey)));
+      return Center(child: Text(AppLocale.pick('پیام صوتی وجود ندارد', 'No audio messages yet'), style: const TextStyle(color: Colors.grey)));
     }
     return ListView.builder(
       padding: const EdgeInsets.all(8),

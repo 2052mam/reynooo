@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/utils/app_locale.dart';
+import '../../../core/utils/security_message_localizer.dart';
 import '../../../data/services/api_service.dart';
 
 /// Point 4: device and session management with a Telegram-like "primary"
@@ -20,6 +22,8 @@ class DeviceManagementScreen extends StatefulWidget {
 
 class _DeviceManagementScreenState extends State<DeviceManagementScreen> {
   final _api = ApiService();
+
+  String _t(String en, String fa) => AppLocale.pick(fa, en);
 
   List<Map<String, dynamic>> _devices = const [];
   List<Map<String, dynamic>> _alerts = const [];
@@ -82,7 +86,7 @@ class _DeviceManagementScreenState extends State<DeviceManagementScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('لغو'),
+            child: Text(_t('Cancel', 'لغو')),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
@@ -122,12 +126,11 @@ class _DeviceManagementScreenState extends State<DeviceManagementScreen> {
   Future<void> _terminate(Map<String, dynamic> device) async {
     final primary = device['is_primary'] == true;
     final ok = await _confirm(
-      primary ? 'حذف دستگاه اصلی' : 'پایان نشست',
+      primary ? _t('Remove primary device', 'حذف دستگاه اصلی') : _t('End session', 'پایان نشست'),
       primary
-          ? 'این دستگاه اصلی حساب شماست. با حذف آن، دستگاه فعال بعدی به دستگاه '
-              'اصلی تبدیل می‌شود. ادامه می‌دهید؟'
-          : 'این دستگاه از حساب خارج شود؟',
-      primary ? 'حذف دستگاه اصلی' : 'تأیید',
+          ? _t('This is your account’s primary device. Removing it makes the next active device primary. Continue?', 'این دستگاه اصلی حساب شماست. با حذف آن، دستگاه فعال بعدی به دستگاه اصلی تبدیل می‌شود. ادامه می‌دهید؟')
+          : _t('Sign this device out of your account?', 'این دستگاه از حساب خارج شود؟'),
+      primary ? _t('Remove primary device', 'حذف دستگاه اصلی') : _t('Confirm', 'تأیید'),
     );
     if (!ok) return;
     await _run(() async {
@@ -135,39 +138,38 @@ class _DeviceManagementScreenState extends State<DeviceManagementScreen> {
       if (!mounted) return;
       setState(() => _devices =
           _devices.where((item) => item['id'] != device['id']).toList());
-      _toast('نشست پایان یافت و دستگاه خارج شد');
+      _toast(_t('Session ended and device signed out.', 'نشست پایان یافت و دستگاه خارج شد'));
       await _load();
     });
   }
 
   Future<void> _terminateOthers() async {
     final ok = await _confirm(
-      'پایان همه نشست‌های دیگر',
-      'همه دستگاه‌ها به‌جز دستگاه فعلی خارج شوند؟ دستگاه اصلی حساب حذف نمی‌شود.',
-      'پایان همه',
+      _t('End all other sessions', 'پایان همه نشست‌های دیگر'),
+      _t('Sign out every device except this one? Your primary device will not be removed.', 'همه دستگاه‌ها به‌جز دستگاه فعلی خارج شوند؟ دستگاه اصلی حساب حذف نمی‌شود.'),
+      _t('End all', 'پایان همه'),
     );
     if (!ok) return;
     await _run(() async {
       final response = await _api.post('/devices/terminate-others', {});
       final count = (response['terminated'] as num?)?.toInt() ?? 0;
       _toast(count > 0
-          ? '$count نشست دیگر پایان یافت'
-          : 'نشست دیگری برای پایان دادن وجود ندارد');
+          ? _t('$count other session(s) ended', '$count نشست دیگر پایان یافت')
+          : _t('There are no other sessions to end.', 'نشست دیگری برای پایان دادن وجود ندارد'));
       await _load();
     });
   }
 
   Future<void> _makePrimary(Map<String, dynamic> device) async {
     final ok = await _confirm(
-      'انتقال دستگاه اصلی',
-      'دستگاه «${device['device_name'] ?? 'ناشناس'}» به دستگاه اصلی حساب '
-          'تبدیل شود؟ پس از این، تنظیمات امنیتی فقط از همان دستگاه قابل تغییر است.',
-      'انتقال',
+      _t('Transfer primary device', 'انتقال دستگاه اصلی'),
+      _t('Make “${device['device_name'] ?? 'Unknown'}” the primary device? After the transfer, security settings can only be changed from that device.', 'دستگاه «${device['device_name'] ?? 'ناشناس'}» به دستگاه اصلی حساب تبدیل شود؟ پس از این، تنظیمات امنیتی فقط از همان دستگاه قابل تغییر است.'),
+      _t('Transfer', 'انتقال'),
     );
     if (!ok) return;
     await _run(() async {
       await _api.post('/devices/primary/transfer', {'device_id': device['id']});
-      _toast('دستگاه اصلی تغییر کرد');
+      _toast(_t('Primary device changed.', 'دستگاه اصلی تغییر کرد'));
       await _load();
     });
   }
@@ -176,7 +178,7 @@ class _DeviceManagementScreenState extends State<DeviceManagementScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('دستگاه‌ها و نشست‌ها'),
+        title: Text(_t('Devices and sessions', 'دستگاه‌ها و نشست‌ها')),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -195,7 +197,7 @@ class _DeviceManagementScreenState extends State<DeviceManagementScreen> {
                       const SizedBox(height: 12),
                       ElevatedButton(
                         onPressed: _load,
-                        child: const Text('تلاش مجدد'),
+                        child: Text(_t('Try again', 'تلاش مجدد')),
                       ),
                     ],
                   ),
@@ -208,7 +210,7 @@ class _DeviceManagementScreenState extends State<DeviceManagementScreen> {
                       _primaryBanner(),
                       if (_alerts.isNotEmpty) ...[
                         const SizedBox(height: 12),
-                        Text('هشدارهای امنیتی اخیر',
+                        Text(_t('Recent security alerts', 'هشدارهای امنیتی اخیر'),
                             style: Theme.of(context).textTheme.titleSmall),
                         const SizedBox(height: 6),
                         ..._alerts.map(_alertCard),
@@ -216,16 +218,15 @@ class _DeviceManagementScreenState extends State<DeviceManagementScreen> {
                       const SizedBox(height: 12),
                       Row(
                         children: [
-                          Text('همه نشست‌های فعال',
+                          Text(_t('All active sessions', 'همه نشست‌های فعال'),
                               style: Theme.of(context).textTheme.titleMedium),
                           const Spacer(),
                           if (_devices.length > 1)
                             TextButton.icon(
                               icon: const Icon(Icons.power_settings_new,
                                   size: 18, color: Colors.red),
-                              label: const Text('پایان بقیه نشست‌ها',
-                                  style: TextStyle(
-                                      color: Colors.red, fontSize: 12)),
+                              label: Text(_t('End other sessions', 'پایان بقیه نشست‌ها'),
+                                  style: const TextStyle(color: Colors.red, fontSize: 12)),
                               onPressed: _busy ? null : _terminateOthers,
                             ),
                         ],
@@ -233,9 +234,9 @@ class _DeviceManagementScreenState extends State<DeviceManagementScreen> {
                       const SizedBox(height: 8),
                       ..._devices.map(_deviceCard),
                       if (_devices.isEmpty)
-                        const Padding(
-                          padding: EdgeInsets.all(24),
-                          child: Center(child: Text('دستگاهی یافت نشد')),
+                        Padding(
+                          padding: const EdgeInsets.all(24),
+                          child: Center(child: Text(_t('No devices found', 'دستگاهی یافت نشد')),),
                         ),
                       const SizedBox(height: 16),
                       _explainer(),
@@ -263,21 +264,19 @@ class _DeviceManagementScreenState extends State<DeviceManagementScreen> {
                 children: [
                   Text(
                     onPrimary
-                        ? 'این دستگاه، دستگاه اصلی حساب است'
+                        ? _t('This is your account’s primary device.', 'این دستگاه، دستگاه اصلی حساب است')
                         : _hasPrimary
-                            ? 'این دستگاه، دستگاه اصلی نیست'
-                            : 'هنوز دستگاه اصلی ثبت نشده است',
+                            ? _t('This is not the primary device.', 'این دستگاه، دستگاه اصلی نیست')
+                            : _t('No primary device has been set yet.', 'هنوز دستگاه اصلی ثبت نشده است'),
                     style: Theme.of(context).textTheme.titleSmall,
                   ),
                   const SizedBox(height: 2),
                   Text(
                     onPrimary
-                        ? 'تأیید دو مرحله‌ای و قفل چت‌های بایگانی فقط از همین '
-                            'دستگاه قابل تغییر است.'
+                        ? _t('Two-step verification and the archive chat lock can only be changed from this device.', 'تأیید دو مرحله‌ای و قفل چت‌های بایگانی فقط از همین دستگاه قابل تغییر است.')
                         : _hasPrimary
-                            ? 'دستگاه اصلی را نمی‌توانید از اینجا حذف کنید و '
-                                'تنظیمات امنیتی فقط روی آن دستگاه در دسترس است.'
-                            : 'اولین دستگاهی که وارد شود، دستگاه اصلی حساب می‌شود.',
+                            ? _t('You cannot remove the primary device here; security settings are available only on that device.', 'دستگاه اصلی را نمی‌توانید از اینجا حذف کنید و تنظیمات امنیتی فقط روی آن دستگاه در دسترس است.')
+                            : _t('The first device to sign in becomes the primary device.', 'اولین دستگاهی که وارد شود، دستگاه اصلی حساب می‌شود.'),
                     style: const TextStyle(fontSize: 12, color: Colors.grey),
                   ),
                 ],
@@ -301,7 +300,7 @@ class _DeviceManagementScreenState extends State<DeviceManagementScreen> {
           critical ? Icons.gpp_maybe : Icons.warning_amber_rounded,
           color: critical ? Colors.red : Colors.orange,
         ),
-        title: Text('${alert['title'] ?? 'رویداد امنیتی'}',
+        title: Text(SecurityMessageLocalizer.localize('${alert['title'] ?? 'رویداد امنیتی'}', isFa: AppLocale.isFa),
             style: const TextStyle(fontSize: 13)),
         subtitle: Text(
           [alert['device_name'], alert['ip_address'], alert['created_at']]
@@ -334,15 +333,15 @@ class _DeviceManagementScreenState extends State<DeviceManagementScreen> {
           children: [
             Expanded(
               child: Text(
-                '${device['device_name'] ?? device['device_model'] ?? 'ناشناس'}',
+                '${device['device_name'] ?? device['device_model'] ?? _t('Unknown', 'ناشناس')}',
                 style: TextStyle(
                     fontWeight:
                         isCurrent ? FontWeight.w600 : FontWeight.normal),
                 overflow: TextOverflow.ellipsis,
               ),
             ),
-            if (isPrimary) _chip('اصلی', Colors.indigo),
-            if (isCurrent) _chip('فعلی', Colors.green),
+            if (isPrimary) _chip(_t('Primary', 'اصلی'), Colors.indigo),
+            if (isCurrent) _chip(_t('Current', 'فعلی'), Colors.green),
           ],
         ),
         subtitle: Column(
@@ -355,12 +354,12 @@ class _DeviceManagementScreenState extends State<DeviceManagementScreen> {
               style: const TextStyle(fontSize: 11),
             ),
             if (lastActive != null)
-              Text('آخرین فعالیت: $lastActive',
+              Text(_t('Last active: $lastActive', 'آخرین فعالیت: $lastActive'),
                   style: const TextStyle(fontSize: 11, color: Colors.grey)),
             if (isPrimary && !isCurrent)
-              const Text(
-                'دستگاه اصلی فقط از روی خودش قابل حذف است.',
-                style: TextStyle(fontSize: 11, color: Colors.indigo),
+              Text(
+                _t('The primary device can only be removed from that device.', 'دستگاه اصلی فقط از روی خودش قابل حذف است.'),
+                style: const TextStyle(fontSize: 11, color: Colors.indigo),
               ),
           ],
         ),
@@ -378,7 +377,7 @@ class _DeviceManagementScreenState extends State<DeviceManagementScreen> {
     if (isCurrent && !isPrimary) {
       // Offer to take ownership only from the device the user is holding.
       return IconButton(
-        tooltip: 'تبدیل به دستگاه اصلی',
+        tooltip: _t('Make primary device', 'تبدیل به دستگاه اصلی'),
         icon: const Icon(Icons.shield_outlined, color: Colors.indigo),
         onPressed: _busy ? null : () => _makePrimary(device),
       );
@@ -391,7 +390,7 @@ class _DeviceManagementScreenState extends State<DeviceManagementScreen> {
       );
     }
     return IconButton(
-      tooltip: 'پایان نشست',
+      tooltip: _t('End session', 'پایان نشست'),
       icon: const Icon(Icons.logout, color: Colors.red),
       onPressed: _busy ? null : () => _terminate(device),
     );
@@ -414,16 +413,14 @@ class _DeviceManagementScreenState extends State<DeviceManagementScreen> {
           color: Colors.blue.withValues(alpha: 0.06),
           borderRadius: BorderRadius.circular(8),
         ),
-        child: const Row(
+        child: Row(
           children: [
-            Icon(Icons.info_outline, size: 18, color: Colors.blue),
-            SizedBox(width: 8),
+            const Icon(Icons.info_outline, size: 18, color: Colors.blue),
+            const SizedBox(width: 8),
             Expanded(
               child: Text(
-                'مانند تلگرام: ورود با دستگاه جدید بی‌درنگ در فهرست گفتگوها '
-                'هشدار می‌دهد. اولین دستگاهِ واردشده، دستگاه اصلی حساب است و '
-                'دستگاه‌های دیگر نمی‌توانند آن را حذف کنند.',
-                style: TextStyle(fontSize: 12, color: Colors.grey),
+                _t('Like Telegram, signing in on a new device triggers an immediate alert in your chat list. The first device becomes primary, and other devices cannot remove it.', 'مانند تلگرام: ورود با دستگاه جدید بی‌درنگ در فهرست گفتگوها هشدار می‌دهد. اولین دستگاهِ واردشده، دستگاه اصلی حساب است و دستگاه‌های دیگر نمی‌توانند آن را حذف کنند.'),
+                style: const TextStyle(fontSize: 12, color: Colors.grey),
               ),
             ),
           ],

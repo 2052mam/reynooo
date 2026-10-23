@@ -291,7 +291,7 @@ class SettingsScreen extends ConsumerWidget {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             ListTile(
-                              title: const Text('فارسی'),
+                              title: Text(isFa ? 'فارسی' : 'Persian'),
                               leading: Radio<String>(
                                 value: 'fa',
                                 groupValue: isFa ? 'fa' : 'en',
@@ -462,9 +462,9 @@ class SettingsScreen extends ConsumerWidget {
                                         title: Text(u['display_name'] ?? ''),
                                         subtitle: Text('@${u['username'] ?? ''}'),
                                         trailing: TextButton(
-                                          child: const Text(
-                                            'آنبلاک',
-                                            style: TextStyle(color: Colors.red),
+                                          child: Text(
+                                            isFa ? 'آنبلاک' : 'Unblock',
+                                            style: const TextStyle(color: Colors.red),
                                           ),
                                           onPressed: () async {
                                             await ApiService().post(
@@ -481,7 +481,7 @@ class SettingsScreen extends ConsumerWidget {
                           actions: [
                             TextButton(
                               onPressed: () => Navigator.pop(ctx),
-                              child: const Text('بستن'),
+                              child: Text(isFa ? 'بستن' : 'Close'),
                             ),
                           ],
                         ),
@@ -553,8 +553,8 @@ class SettingsScreen extends ConsumerWidget {
                   Divider(height: 1, indent: 56, color: theme.dividerColor.withValues(alpha: 0.2)),
                   ListTile(
                     leading: _iconBadge(Icons.campaign_rounded, const Color(0xFFEAB308)),
-                    title: const Text('کانال‌های اسپانسرشده', style: TextStyle(fontWeight: FontWeight.w600)),
-                    subtitle: const Text('مدیریت کانال‌های تبلیغاتی (مدیر کل)', style: TextStyle(fontSize: 12)),
+                    title: Text(isFa ? 'کانال‌های اسپانسرشده' : 'Sponsored channels', style: const TextStyle(fontWeight: FontWeight.w600)),
+                    subtitle: Text(isFa ? 'مدیریت کانال‌های تبلیغاتی (مدیر کل)' : 'Manage promoted channels (super admin)', style: const TextStyle(fontSize: 12)),
                     trailing: const Icon(Icons.chevron_right_rounded),
                     onTap: () => Navigator.of(context).push(
                       MaterialPageRoute(builder: (_) => const SponsoredChannelsScreen()),

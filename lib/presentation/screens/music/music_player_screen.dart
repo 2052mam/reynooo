@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/utils/app_locale.dart';
 import '../../../core/utils/media_utils.dart';
 import '../../../data/services/music_player_service.dart';
 
@@ -16,14 +17,14 @@ class MusicPlayerScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('پخش‌کننده موسیقی', style: TextStyle(fontWeight: FontWeight.w700)),
+        title: Text(AppLocale.pick('پخش‌کننده موسیقی', 'Music player'), style: const TextStyle(fontWeight: FontWeight.w700)),
         actions: [
           StreamBuilder<MusicPlayerState>(
             stream: MusicPlayerService().stream,
             initialData: MusicPlayerService().state,
             builder: (context, snap) {
               return IconButton(
-                tooltip: 'بستن پخش',
+                tooltip: AppLocale.pick('بستن پخش', 'Close player'),
                 icon: const Icon(Icons.close_rounded),
                 onPressed: () async {
                   await MusicPlayerService().close();
@@ -42,8 +43,8 @@ class MusicPlayerScreen extends StatelessWidget {
             final st = snap.data ?? MusicPlayerService().state;
             final track = st.current;
             if (track == null) {
-              return const Center(
-                child: Text('چیزی در حال پخش نیست', style: TextStyle(fontSize: 16)),
+              return Center(
+                child: Text(AppLocale.pick('چیزی در حال پخش نیست', 'Nothing is playing'), style: const TextStyle(fontSize: 16)),
               );
             }
             final progress = st.duration.inMilliseconds > 0
@@ -184,7 +185,7 @@ class MusicPlayerScreen extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     IconButton(
-                      tooltip: 'تکرار',
+                      tooltip: AppLocale.pick('تکرار', 'Repeat'),
                       icon: Icon(
                         st.repeatMode == 2 ? Icons.repeat_one_rounded : Icons.repeat_rounded,
                         color: st.repeatMode == 0 ? Colors.grey : primary,
@@ -194,7 +195,7 @@ class MusicPlayerScreen extends StatelessWidget {
                     ),
                     const SizedBox(width: 8),
                     IconButton(
-                      tooltip: '۱۰ ثانیه عقب',
+                      tooltip: AppLocale.pick('۱۰ ثانیه عقب', 'Back 10 seconds'),
                       icon: const Icon(Icons.replay_10_rounded, size: 30),
                       onPressed: () => MusicPlayerService().seekBackward(),
                     ),
@@ -236,13 +237,13 @@ class MusicPlayerScreen extends StatelessWidget {
                     ),
                     const SizedBox(width: 12),
                     IconButton(
-                      tooltip: '۱۰ ثانیه جلو',
+                      tooltip: AppLocale.pick('۱۰ ثانیه جلو', 'Forward 10 seconds'),
                       icon: const Icon(Icons.forward_10_rounded, size: 30),
                       onPressed: () => MusicPlayerService().seekForward(),
                     ),
                     const SizedBox(width: 8),
                     IconButton(
-                      tooltip: 'تصادفی',
+                      tooltip: AppLocale.pick('تصادفی', 'Shuffle'),
                       icon: Icon(
                         Icons.shuffle_rounded,
                         color: st.shuffle ? primary : Colors.grey,
@@ -257,7 +258,7 @@ class MusicPlayerScreen extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     IconButton(
-                      tooltip: 'قبلی',
+                      tooltip: AppLocale.pick('قبلی', 'Previous'),
                       icon: const Icon(Icons.skip_previous_rounded, size: 30),
                       onPressed: st.queue.length > 1 ? () => MusicPlayerService().previous() : null,
                     ),
@@ -271,7 +272,7 @@ class MusicPlayerScreen extends StatelessWidget {
                     ),
                     const SizedBox(width: 16),
                     IconButton(
-                      tooltip: 'بعدی',
+                      tooltip: AppLocale.pick('بعدی', 'Next'),
                       icon: const Icon(Icons.skip_next_rounded, size: 30),
                       onPressed: st.queue.length > 1 ? () => MusicPlayerService().next() : null,
                     ),
@@ -285,7 +286,7 @@ class MusicPlayerScreen extends StatelessWidget {
                     Icon(Icons.queue_music_rounded, color: primary, size: 20),
                     const SizedBox(width: 8),
                     Text(
-                      'صف پخش (${st.queue.length})',
+                      AppLocale.pick('صف پخش (${st.queue.length})', 'Play queue (${st.queue.length})'),
                       style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
                     ),
                   ],

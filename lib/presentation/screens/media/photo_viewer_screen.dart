@@ -144,7 +144,7 @@ class _PhotoViewerScreenState extends State<PhotoViewerScreen> {
                       ),
                       const Spacer(),
                       IconButton(
-                        tooltip: 'دانلود عکس',
+                        tooltip: labels.isFa ? 'دانلود عکس' : 'Download photo',
                         onPressed: _downloading ? null : _downloadPhoto,
                         icon: _downloading
                             ? const SizedBox(

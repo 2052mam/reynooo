@@ -73,7 +73,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   Future<void> _submit() async {
     if (_loading || !_formKey.currentState!.validate()) return;
     if (!_termsAccepted) {
-      setState(() => _error = 'برای ثبت‌نام باید قوانین را بخوانید و بپذیرید');
+      setState(() => _error = AppLocale.pick('برای ثبت‌نام باید قوانین را بخوانید و بپذیرید', 'Read and accept the terms to register.'));
       return;
     }
     setState(() {

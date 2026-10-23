@@ -23,6 +23,9 @@ class LocationBubble extends StatefulWidget {
 class _LocationBubbleState extends State<LocationBubble> {
   bool _openingExternalMap = false;
 
+  String _t(String en, String fa) =>
+      Localizations.localeOf(context).languageCode == 'fa' ? fa : en;
+
   MessageModel get _message => widget.message;
   double? get _lat => _message.latitude;
   double? get _lng => _message.longitude;
@@ -51,7 +54,7 @@ class _LocationBubbleState extends State<LocationBubble> {
     setState(() => _openingExternalMap = false);
     if (!opened) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('هیچ برنامه‌ای برای باز کردن نقشه پیدا نشد')),
+        SnackBar(content: Text(_t('No map app was found.', 'هیچ برنامه‌ای برای باز کردن نقشه پیدا نشد'))),
       );
     }
   }
@@ -66,7 +69,7 @@ class _LocationBubbleState extends State<LocationBubble> {
 
     return Semantics(
       button: true,
-      label: 'نمایش موقعیت مکانی روی نقشه',
+      label: _t('Show location on map', 'نمایش موقعیت مکانی روی نقشه'),
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: _openViewer,
@@ -149,7 +152,7 @@ class _LocationBubbleState extends State<LocationBubble> {
                                 ),
                                 const SizedBox(width: 4),
                                 Text(
-                                  active ? 'زنده' : 'پایان یافته',
+                                  active ? _t('Live', 'زنده') : _t('Ended', 'پایان یافته'),
                                   style: const TextStyle(
                                     color: Colors.white,
                                     fontSize: 10,
@@ -177,7 +180,7 @@ class _LocationBubbleState extends State<LocationBubble> {
                           child: Text(
                             _message.locationTitle?.isNotEmpty == true
                                 ? _message.locationTitle!
-                                : (live ? 'لوکیشن زنده' : 'لوکیشن'),
+                                : (live ? _t('Live location', 'لوکیشن زنده') : _t('Location', 'لوکیشن')),
                             style: TextStyle(
                               color: fg,
                               fontWeight: FontWeight.w600,
@@ -201,7 +204,7 @@ class _LocationBubbleState extends State<LocationBubble> {
                     if (live && active && _message.liveUntil != null) ...[
                       const SizedBox(height: 2),
                       Text(
-                        'تا ${_two(_message.liveUntil!.hour)}:${_two(_message.liveUntil!.minute)} فعال است',
+                        _t('Active until ${_two(_message.liveUntil!.hour)}:${_two(_message.liveUntil!.minute)}', 'تا ${_two(_message.liveUntil!.hour)}:${_two(_message.liveUntil!.minute)} فعال است'),
                         style: TextStyle(
                           color: fg.withValues(alpha: 0.7),
                           fontSize: 11,
@@ -230,7 +233,7 @@ class _LocationBubbleState extends State<LocationBubble> {
                                 color: theme.colorScheme.primary,
                               ),
                         label: Text(
-                          'باز کردن در نقشه',
+                          _t('Open in maps', 'باز کردن در نقشه'),
                           style: TextStyle(
                             color: theme.colorScheme.primary,
                             fontSize: 12,
