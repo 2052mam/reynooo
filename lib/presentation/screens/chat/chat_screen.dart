@@ -3585,12 +3585,12 @@ decoration: InputDecoration(
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(color: Colors.purple),
                         ),
-                        child: const Row(
+                        child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.visibility_off, size: 14, color: Colors.purple),
-                            SizedBox(width: 4),
-                            Text(_label('Spoiler', 'اسپویلر'), style: TextStyle(fontSize: 11, color: Colors.purple)),
+                            const Icon(Icons.visibility_off, size: 14, color: Colors.purple),
+                            const SizedBox(width: 4),
+                            Text(_label('Spoiler', 'اسپویلر'), style: const TextStyle(fontSize: 11, color: Colors.purple)),
                           ],
                         ),
                       ),
