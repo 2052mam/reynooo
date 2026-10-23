@@ -410,7 +410,7 @@ class _MapTile extends StatelessWidget {
     return CachedNetworkImage(
       imageUrl: 'https://tile.openstreetmap.org/$z/$x/$y.png',
       // OpenStreetMap's tile policy requires an identifying User-Agent.
-      httpHeaders: const {'User-Agent': 'SecureMessenger/1.0 (Flutter app)'},
+      httpHeaders: const {'User-Agent': 'Reyno/1.0 (Flutter app)'},
       fit: BoxFit.fill,
       fadeInDuration: Duration.zero,
       fadeOutDuration: Duration.zero,

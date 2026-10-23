@@ -112,6 +112,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
   bool _loadingEarlier = false;
   bool _polling = false;
   bool _refreshingStatuses = false;
+  DateTime? _lastAuxiliaryPollAt;
   int _loadGeneration = 0;
   bool _loading = true;
   bool _sending = false;
@@ -789,12 +790,23 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
 
   void _pollNow() {
     if (!mounted || !_foreground || _chatUnavailable) return;
-    unawaited(_loadChatInfo());
     if (_loading) return;
     if (!_searchMode && !_historyMode) unawaited(_pollNewMessages());
-    unawaited(_loadPinned());
-    // Reconcile all loaded pages, even in search/history and after read ticks.
-    unawaited(_refreshMessageStatuses());
+
+    // Message arrival stays on the fast 3-second cadence. Chat metadata,
+    // pins and delivery/read status can be reconciled less frequently; doing
+    // all four reads on every tick multiplied server work for every open chat.
+    final now = DateTime.now();
+    final lastAuxiliaryPoll = _lastAuxiliaryPollAt;
+    if (lastAuxiliaryPoll == null ||
+        now.difference(lastAuxiliaryPoll).inSeconds >=
+            ApiConstants.auxiliaryChatPollingIntervalSeconds) {
+      _lastAuxiliaryPollAt = now;
+      unawaited(_loadChatInfo());
+      unawaited(_loadPinned());
+      // Reconcile every loaded page, including in search/history mode.
+      unawaited(_refreshMessageStatuses());
+    }
   }
 
   void _applyMessageUpdate(MessageSyncResult update) {

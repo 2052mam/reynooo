@@ -80,7 +80,7 @@ void main() {
           await tester.pumpWidget(
             ProviderScope(
               overrides: [authNotifierProvider.overrideWith((ref) => auth)],
-              child: const SecureMessengerApp(),
+              child: const ReynoApp(),
             ),
           );
           await tester.pumpAndSettle();
@@ -146,7 +146,7 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [authNotifierProvider.overrideWith((ref) => auth)],
-          child: const SecureMessengerApp(),
+          child: const ReynoApp(),
         ),
       );
       await tester.pumpAndSettle();

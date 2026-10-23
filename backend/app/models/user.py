@@ -83,7 +83,7 @@ class User(db.Model):
 
     def get_totp_uri(self):
         return pyotp.totp.TOTP(self.totp_secret).provisioning_uri(
-            name=self.email, issuer_name='SecureMessenger'
+            name=self.email, issuer_name='Reyno'
         )
 
     def verify_totp(self, code: str) -> bool:

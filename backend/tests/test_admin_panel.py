@@ -94,7 +94,7 @@ def test_every_page_renders(panel, client, make_message, upload):
                  'security', 'audit'):
         response = client.get(f'/{SECRET}/{path}')
         assert response.status_code == 200, path
-        assert 'SecureMessenger' in text(response)
+        assert 'Reyno' in text(response)
 
 
 def test_the_dashboard_shows_counters_and_navigation(panel, client):

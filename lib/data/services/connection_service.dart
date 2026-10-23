@@ -5,6 +5,7 @@ import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'notification_poller.dart';
+import '../../core/utils/app_locale.dart';
 
 /// Foreground-service entry point. Must stay a top-level function.
 @pragma('vm:entry-point')
@@ -70,7 +71,7 @@ class ConnectionService {
   static const _prefsKey = 'bg_connection_enabled';
   static const _serviceId = 727271;
   static const _channelId = 'secure_messenger_connection';
-  static const _channelName = 'اتصال پس‌زمینه';
+  static const _channelName = 'Background connection';
 
   static bool _initialized = false;
 
@@ -83,7 +84,7 @@ class ConnectionService {
           channelId: _channelId,
           channelName: _channelName,
           channelDescription:
-              'اتصال دائمی برای دریافت پیام‌ها حتی وقتی برنامه بسته است',
+              'Persistent connection for receiving messages while Reyno is closed',
           onlyAlertOnce: true,
         ),
         iosNotificationOptions: const IOSNotificationOptions(
@@ -112,6 +113,7 @@ class ConnectionService {
     try {
       final prefs = await SharedPreferences.getInstance();
       if (prefs.getBool('notif_enabled') == false) return;
+      AppLocale.set(prefs.getString('locale') ?? 'en');
       if (prefs.getBool(_prefsKey) == false) return;
       if (await FlutterForegroundTask.isRunningService) return;
       await FlutterForegroundTask.startService(
@@ -119,8 +121,8 @@ class ConnectionService {
         // Android 15 dataSync 6h/day cap and allowed to start after boot.
         serviceTypes: [ForegroundServiceTypes.remoteMessaging],
         serviceId: _serviceId,
-        notificationTitle: 'SecureMessenger',
-        notificationText: 'متصل — پیام‌های جدید را دریافت می‌کنید',
+        notificationTitle: 'Reyno',
+        notificationText: AppLocale.pick('متصل — پیام‌های جدید را دریافت می‌کنید', 'Connected — receiving new messages'),
         callback: foregroundTaskStartCallback,
       );
     } catch (_) {}

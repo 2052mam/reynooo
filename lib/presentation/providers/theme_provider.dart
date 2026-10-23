@@ -20,16 +20,16 @@ final themePaletteProvider =
 });
 
 class ThemeModeNotifier extends StateNotifier<ThemeMode> {
-  ThemeModeNotifier() : super(ThemeMode.system) {
+  ThemeModeNotifier() : super(ThemeMode.dark) {
     _load();
   }
 
   Future<void> _load() async {
     final prefs = await SharedPreferences.getInstance();
-    final value = prefs.getString('theme_mode') ?? 'system';
+    final value = prefs.getString('theme_mode') ?? 'dark';
     state = ThemeMode.values.firstWhere(
       (e) => e.name == value,
-      orElse: () => ThemeMode.system,
+      orElse: () => ThemeMode.dark,
     );
   }
 

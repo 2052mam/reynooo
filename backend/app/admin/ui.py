@@ -158,7 +158,7 @@ def page(secret, title, body, active='', flash=None):
 <title>{escape(title)} · پنل مدیریت</title><style>{BASE_CSS}</style></head><body>
 <div class="layout">
 <aside class="sidebar">
-<div class="brand">🔒 SecureMessenger</div>
+<div class="brand">✦ Reyno</div>
 {nav}
 <div class="sep"></div>
 <a href="/{secret}/logout"><span>🚪 خروج</span></a>

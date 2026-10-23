@@ -45,7 +45,7 @@ enum SaveStatus { saved, permissionDenied, permissionPermanentlyDenied, failed }
 ///  * asks for the right permission for the OS version (and nothing on
 ///    Android 10+, where MediaStore needs none),
 ///  * hands the bytes to Android's MediaStore so the file is published into
-///    Pictures/Movies/Music/Download under a `SecureMessenger` folder,
+///    Pictures/Movies/Music/Download under a `Reyno` folder,
 ///  * reports a real success/failure so the UI can stop lying.
 class GallerySaverService {
   GallerySaverService._();

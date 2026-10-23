@@ -36,7 +36,7 @@ class TermsService {
 ''';
 
   static const String rulesEn = '''
-Secure Messenger Terms of Use
+Reyno Terms of Use
 
 1. Respect other users
 - Insults, threats, harassment and hate speech are prohibited.

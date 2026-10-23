@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/utils/app_locale.dart';
 import '../../../data/services/connection_service.dart';
 import '../../../data/services/system_settings_service.dart';
 
@@ -71,10 +72,11 @@ class _NotificationSetupDialogState extends State<_NotificationSetupDialog> {
       await SystemSettingsService.openAppInfo();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
+        SnackBar(
+          content: Text(AppLocale.pick(
             'گزینه «توقف فعالیت برنامه در صورت عدم استفاده» را خاموش کنید.',
-          ),
+            'Turn off “Pause app activity if unused” in settings.',
+          )),
         ),
       );
       await _refresh();
@@ -85,10 +87,11 @@ class _NotificationSetupDialogState extends State<_NotificationSetupDialog> {
     await SystemSettingsService.openAutoStartSettings();
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-          'در تنظیمات بازشده، «شروع خودکار» را برای SecureMessenger فعال کنید.',
-        ),
+      SnackBar(
+        content: Text(AppLocale.pick(
+          'در تنظیمات بازشده، «شروع خودکار» را برای Reyno فعال کنید.',
+          'Enable “Autostart” for Reyno in the settings page.',
+        )),
       ),
     );
   }
@@ -96,15 +99,17 @@ class _NotificationSetupDialogState extends State<_NotificationSetupDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('اعلان پایدار مثل تلگرام'),
+      title: Text(AppLocale.pick('اعلان پایدار مثل تلگرام', 'Reliable message notifications')),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'برای اینکه پیام‌ها حتی با بسته بودن کامل برنامه برسند، '
-              'این ۳ مورد را کامل کنید:',
+            Text(
+              AppLocale.pick(
+                'برای اینکه پیام‌ها حتی با بسته بودن کامل برنامه برسند، این ۳ مورد را کامل کنید:',
+                'Complete these steps to receive messages when Reyno is closed:',
+              ),
               style: TextStyle(fontSize: 13),
             ),
             const SizedBox(height: 12),
@@ -112,30 +117,30 @@ class _NotificationSetupDialogState extends State<_NotificationSetupDialog> {
               done: _batteryExempt,
               busy: _busyBattery,
               icon: Icons.battery_saver_outlined,
-              title: 'فعالیت در پس‌زمینه (باتری)',
-              hint: 'بدون آن، گوشی اتصال را در حالت خواب می‌بندد.',
-              actionLabel: 'فعال‌سازی',
+              title: AppLocale.pick('فعالیت در پس‌زمینه (باتری)', 'Background activity (battery)'),
+              hint: AppLocale.pick('بدون آن، گوشی اتصال را در حالت خواب می‌بندد.', 'Without this, your phone may stop the connection while asleep.'),
+              actionLabel: AppLocale.pick('فعال‌سازی', 'Enable'),
               onAction: _fixBattery,
             ),
             _SetupRow(
               done: _hibernationExempt,
               busy: _busyHibernation,
               icon: Icons.pause_circle_outline,
-              title: 'عدم توقف خودکار برنامه',
+              title: AppLocale.pick('عدم توقف خودکار برنامه', 'Prevent automatic app suspension'),
               hint: _hibernationRefused
-                  ? 'گوشی اجازه خودکار نداد — در صفحه تنظیمات، گزینه «توقف فعالیت برنامه در صورت عدم استفاده» را خاموش کنید.'
-                  : 'اگر روشن بماند، اندروید اتصال را بعد از بستن برنامه می‌بندد.',
+                  ? AppLocale.pick('گوشی اجازه خودکار نداد — در صفحه تنظیمات، گزینه «توقف فعالیت برنامه در صورت عدم استفاده» را خاموش کنید.', 'Your phone blocked the automatic change. Turn off “Pause app activity if unused” in settings.')
+                  : AppLocale.pick('اگر روشن بماند، اندروید اتصال را بعد از بستن برنامه می‌بندد.', 'If left on, Android may stop the connection when Reyno is closed.'),
               actionLabel:
-                  _hibernationRefused ? 'باز کردن تنظیمات' : 'رفع خودکار',
+                  _hibernationRefused ? AppLocale.pick('باز کردن تنظیمات', 'Open settings') : AppLocale.pick('رفع خودکار', 'Fix automatically'),
               onAction: _fixHibernation,
             ),
             _SetupRow(
               done: null, // Not detectable: always a manual step.
               busy: false,
               icon: Icons.rocket_launch_outlined,
-              title: 'شروع خودکار (شیائومی/هواوی/...)',
-              hint: 'تا اتصال بعد از بستن برنامه و ری‌استارت گوشی زنده بماند.',
-              actionLabel: 'باز کردن',
+              title: AppLocale.pick('شروع خودکار (شیائومی/هواوی/...)', 'Autostart (Xiaomi/Huawei/other devices)'),
+              hint: AppLocale.pick('تا اتصال بعد از بستن برنامه و ری‌استارت گوشی زنده بماند.', 'Keeps the connection active after closing Reyno or restarting your phone.'),
+              actionLabel: AppLocale.pick('باز کردن', 'Open'),
               onAction: _openAutoStart,
             ),
           ],
@@ -144,7 +149,7 @@ class _NotificationSetupDialogState extends State<_NotificationSetupDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('انجام شد'),
+          child: Text(AppLocale.pick('انجام شد', 'Done')),
         ),
       ],
     );

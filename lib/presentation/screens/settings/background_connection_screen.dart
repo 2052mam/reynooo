@@ -132,7 +132,7 @@ class _BackgroundConnectionScreenState
       SnackBar(
         content: Text(
           opened
-              ? 'در تنظیمات بازشده، «شروع خودکار» را برای SecureMessenger فعال کنید.'
+              ? 'در تنظیمات بازشده، «شروع خودکار» را برای Reyno فعال کنید.'
               : 'باز کردن تنظیمات ممکن نشد. لطفاً دستی در تنظیمات گوشی اجازه شروع خودکار بدهید.',
         ),
       ),

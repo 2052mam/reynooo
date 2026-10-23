@@ -101,7 +101,7 @@ class MainActivity : FlutterActivity() {
             }
             val target = File(
                 Environment.getExternalStoragePublicDirectory(legacyDir),
-                "SecureMessenger"
+                "Reyno"
             )
             if (!target.exists()) target.mkdirs()
             val outFile = uniqueFile(target, fileName)
@@ -120,10 +120,10 @@ class MainActivity : FlutterActivity() {
             else -> MediaStore.Downloads.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
         }
         val relative = when (kind) {
-            "image" -> "${Environment.DIRECTORY_PICTURES}/SecureMessenger"
-            "video" -> "${Environment.DIRECTORY_MOVIES}/SecureMessenger"
-            "audio" -> "${Environment.DIRECTORY_MUSIC}/SecureMessenger"
-            else -> "${Environment.DIRECTORY_DOWNLOADS}/SecureMessenger"
+            "image" -> "${Environment.DIRECTORY_PICTURES}/Reyno"
+            "video" -> "${Environment.DIRECTORY_MOVIES}/Reyno"
+            "audio" -> "${Environment.DIRECTORY_MUSIC}/Reyno"
+            else -> "${Environment.DIRECTORY_DOWNLOADS}/Reyno"
         }
 
         val values = ContentValues().apply {

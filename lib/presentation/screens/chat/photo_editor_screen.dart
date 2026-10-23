@@ -7,6 +7,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:image/image.dart' as img;
 
+import '../../../core/utils/app_locale.dart';
+
 /// Telegram-like internal photo editor: crop (aspect ratios), rotate, flip,
 /// draw (pen colors/sizes), text overlay, then send.
 /// Returns the edited [File] via Navigator.pop.
@@ -120,7 +122,7 @@ class _PhotoEditorScreenState extends State<PhotoEditorScreen> {
       if (mounted) {
         setState(() {
           _loading = false;
-          _loadError = 'باز کردن تصویر ممکن نشد';
+          _loadError = AppLocale.pick('باز کردن تصویر ممکن نشد', 'Could not open image');
         });
       }
     }
@@ -307,14 +309,16 @@ class _PhotoEditorScreenState extends State<PhotoEditorScreen> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setD) => AlertDialog(
-          title: Text(existing == null ? 'متن روی عکس' : 'ویرایش متن'),
+          title: Text(existing == null
+              ? AppLocale.pick('متن روی عکس', 'Text on photo')
+              : AppLocale.pick('ویرایش متن', 'Edit text')),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: ctrl,
                 autofocus: true,
-                decoration: const InputDecoration(hintText: 'متن...'),
+                decoration: InputDecoration(hintText: AppLocale.pick('متن...', 'Enter text...')),
               ),
               const SizedBox(height: 12),
               Wrap(
@@ -343,18 +347,21 @@ class _PhotoEditorScreenState extends State<PhotoEditorScreen> {
             if (existing != null)
               TextButton(
                 onPressed: () => Navigator.pop(ctx, '__delete__'),
-                child: const Text('حذف', style: TextStyle(color: Colors.red)),
+                child: Text(AppLocale.pick('حذف', 'Delete'), style: const TextStyle(color: Colors.red)),
               ),
             TextButton(
-                onPressed: () => Navigator.pop(ctx), child: const Text('لغو')),
+                onPressed: () => Navigator.pop(ctx), child: Text(AppLocale.pick('لغو', 'Cancel'))),
             FilledButton(
               onPressed: () => Navigator.pop(ctx, ctrl.text.trim()),
-              child: Text(existing == null ? 'افزودن' : 'ذخیره'),
+              child: Text(existing == null
+                  ? AppLocale.pick('افزودن', 'Add')
+                  : AppLocale.pick('ذخیره', 'Save')),
             ),
           ],
         ),
       ),
     );
+    ctrl.dispose();
     if (result == null || !mounted) return;
     setState(() {
       if (result == '__delete__') {
@@ -461,7 +468,7 @@ class _PhotoEditorScreenState extends State<PhotoEditorScreen> {
             shadows: const [Shadow(color: Colors.black, blurRadius: 6)],
           ),
         ),
-        textDirection: TextDirection.rtl,
+        textDirection: AppLocale.isFa ? TextDirection.rtl : TextDirection.ltr,
         textAlign: TextAlign.center,
       )..layout(maxWidth: size.width * 0.9);
       painter.paint(
@@ -492,7 +499,7 @@ class _PhotoEditorScreenState extends State<PhotoEditorScreen> {
       if (mounted) {
         setState(() => _saving = false);
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('ذخیره ناموفق: $e')));
+            .showSnackBar(SnackBar(content: Text(AppLocale.pick('ذخیره ناموفق: $e', 'Save failed: $e'))));
       }
     }
   }
@@ -508,16 +515,16 @@ class _PhotoEditorScreenState extends State<PhotoEditorScreen> {
     final leave = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('لغو ویرایش'),
-        content: const Text('تغییرات ذخیره نشده از بین می‌رود. مطمئن هستید؟'),
+        title: Text(AppLocale.pick('لغو ویرایش', 'Discard edits')),
+        content: Text(AppLocale.pick('تغییرات ذخیره نشده از بین می‌رود. مطمئن هستید؟', 'Your unsaved changes will be lost. Are you sure?')),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('ادامه ویرایش')),
+              child: Text(AppLocale.pick('ادامه ویرایش', 'Continue editing'))),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('لغو ویرایش'),
+            child: Text(AppLocale.pick('لغو ویرایش', 'Discard edits')),
           ),
         ],
       ),
@@ -535,35 +542,33 @@ class _PhotoEditorScreenState extends State<PhotoEditorScreen> {
         if (await _confirmDiscard() && mounted) Navigator.pop(context);
       },
       child: Scaffold(
-        backgroundColor: Colors.black,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         appBar: AppBar(
-          backgroundColor: Colors.black,
-          foregroundColor: Colors.white,
-          title: const Text('ویرایش عکس'),
+          title: Text(AppLocale.pick('ویرایش عکس', 'Edit photo')),
           actions: [
             IconButton(
-              tooltip: 'چرخش',
+              tooltip: AppLocale.pick('چرخش', 'Rotate'),
               icon: const Icon(Icons.rotate_right),
               onPressed: image == null ? null : _rotate,
             ),
             IconButton(
-              tooltip: 'آینه',
+              tooltip: AppLocale.pick('آینه', 'Flip'),
               icon: const Icon(Icons.flip),
               onPressed: image == null ? null : _flip,
             ),
             IconButton(
-              tooltip: 'متن',
+              tooltip: AppLocale.pick('متن', 'Text'),
               icon: const Icon(Icons.text_fields),
               onPressed: image == null ? null : () => _addOrEditText(),
             ),
             IconButton(
-              tooltip: 'واگرد',
+              tooltip: AppLocale.pick('واگرد', 'Undo'),
               icon: const Icon(Icons.undo),
               onPressed:
                   (_strokes.isEmpty && _texts.isEmpty) ? null : _undo,
             ),
             IconButton(
-              tooltip: 'ارسال',
+              tooltip: AppLocale.pick('ارسال', 'Send'),
               icon: _saving
                   ? const SizedBox(
                       width: 18,
@@ -577,22 +582,22 @@ class _PhotoEditorScreenState extends State<PhotoEditorScreen> {
           ],
         ),
         body: _loading
-            ? const Center(child: CircularProgressIndicator(color: Colors.white))
+            ? const Center(child: CircularProgressIndicator())
             : _loadError != null || image == null
                 ? Center(
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.broken_image_outlined,
-                            color: Colors.white38, size: 48),
+                        Icon(Icons.broken_image_outlined,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant, size: 48),
                         const SizedBox(height: 8),
-                        Text(_loadError ?? 'تصویر در دسترس نیست',
-                            style: const TextStyle(color: Colors.white70)),
+                        Text(_loadError ?? AppLocale.pick('تصویر در دسترس نیست', 'Image unavailable'),
+                            style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
                         const SizedBox(height: 12),
                         FilledButton(
                           onPressed: () =>
                               Navigator.pop(context, widget.imageFile),
-                          child: const Text('ارسال بدون ویرایش'),
+                          child: Text(AppLocale.pick('ارسال بدون ویرایش', 'Send original')),
                         ),
                       ],
                     ),
@@ -604,12 +609,12 @@ class _PhotoEditorScreenState extends State<PhotoEditorScreen> {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 12, vertical: 8),
                         child: Row(children: [
-                          _cropChip('اصلی', null),
-                          _cropChip('۱:۱', 1.0),
-                          _cropChip('۴:۳', 4 / 3),
-                          _cropChip('۳:۴', 3 / 4),
-                          _cropChip('۱۶:۹', 16 / 9),
-                          _cropChip('۹:۱۶', 9 / 16),
+                          _cropChip(AppLocale.pick('اصلی', 'Original'), null),
+                          _cropChip(AppLocale.pick('۱:۱', '1:1'), 1.0),
+                          _cropChip(AppLocale.pick('۴:۳', '4:3'), 4 / 3),
+                          _cropChip(AppLocale.pick('۳:۴', '3:4'), 3 / 4),
+                          _cropChip(AppLocale.pick('۱۶:۹', '16:9'), 16 / 9),
+                          _cropChip(AppLocale.pick('۹:۱۶', '9:16'), 9 / 16),
                         ]),
                       ),
                       Expanded(
@@ -652,7 +657,7 @@ class _PhotoEditorScreenState extends State<PhotoEditorScreen> {
 
   Widget _buildToolbar() {
     return Container(
-      color: Colors.black,
+      color: Theme.of(context).colorScheme.surface,
       padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -661,15 +666,15 @@ class _PhotoEditorScreenState extends State<PhotoEditorScreen> {
             children: [
               IconButton(
                 tooltip: _tool == _EditorTool.draw
-                    ? 'حالت جابه‌جایی متن'
-                    : 'حالت نقاشی',
+                    ? AppLocale.pick('حالت جابه‌جایی متن', 'Move text')
+                    : AppLocale.pick('حالت نقاشی', 'Draw'),
                 icon: Icon(
                   _tool == _EditorTool.draw
                       ? Icons.brush
                       : Icons.pan_tool_outlined,
                   color: _tool == _EditorTool.draw
-                      ? Colors.greenAccent
-                      : Colors.white,
+                      ? Theme.of(context).colorScheme.primary
+                      : Theme.of(context).colorScheme.onSurface,
                 ),
                 onPressed: () => setState(() => _tool =
                     _tool == _EditorTool.draw
@@ -696,8 +701,8 @@ class _PhotoEditorScreenState extends State<PhotoEditorScreen> {
                                   shape: BoxShape.circle,
                                   border: Border.all(
                                     color: _penColor == c
-                                        ? Colors.blue
-                                        : Colors.white30,
+                                        ? Theme.of(context).colorScheme.primary
+                                        : Theme.of(context).colorScheme.outline,
                                     width: _penColor == c ? 3 : 1,
                                   ),
                                 ),
@@ -708,16 +713,16 @@ class _PhotoEditorScreenState extends State<PhotoEditorScreen> {
                 ),
               ),
               IconButton(
-                tooltip: 'پاک کردن همه',
-                icon: const Icon(Icons.delete_outline, color: Colors.white70),
+                tooltip: AppLocale.pick('پاک کردن همه', 'Clear all'),
+                icon: Icon(Icons.delete_outline, color: Theme.of(context).colorScheme.onSurfaceVariant),
                 onPressed:
                     (_strokes.isEmpty && _texts.isEmpty) ? null : _clearAll,
               ),
             ],
           ),
           Row(children: [
-            const Text('ضخامت',
-                style: TextStyle(color: Colors.white70, fontSize: 12)),
+            Text(AppLocale.pick('ضخامت', 'Brush size'),
+                style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12)),
             Expanded(
               child: Slider(
                 value: _penWidth,
@@ -750,11 +755,12 @@ class _PhotoEditorScreenState extends State<PhotoEditorScreen> {
       padding: const EdgeInsets.only(right: 8),
       child: ChoiceChip(
         label: Text(label,
-            style:
-                TextStyle(color: selected ? Colors.white : Colors.white70)),
+            style: TextStyle(color: selected
+                ? Theme.of(context).colorScheme.onPrimary
+                : Theme.of(context).colorScheme.onSurface)),
         selected: selected,
-        selectedColor: Colors.blue,
-        backgroundColor: Colors.white10,
+        selectedColor: Theme.of(context).colorScheme.primary,
+        backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
         onSelected: (_) => _setAspect(ratio),
       ),
     );
@@ -856,7 +862,7 @@ class _EditorPainter extends CustomPainter {
             shadows: const [Shadow(color: Colors.black, blurRadius: 6)],
           ),
         ),
-        textDirection: TextDirection.rtl,
+        textDirection: AppLocale.isFa ? TextDirection.rtl : TextDirection.ltr,
         textAlign: TextAlign.center,
       )..layout(maxWidth: drawn.width * 0.9);
       painter.paint(

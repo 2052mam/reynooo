@@ -26,5 +26,8 @@ class ApiConstants {
   static const String messagesPoll = '/messages/poll';
   static const String mediaUpload = '/media/upload';
 
+  // Keep message delivery fast, while polling secondary chat state less often
+  // to avoid multiplying status/profile/pin queries per open conversation.
   static const int pollingIntervalSeconds = 3;
+  static const int auxiliaryChatPollingIntervalSeconds = 15;
 }

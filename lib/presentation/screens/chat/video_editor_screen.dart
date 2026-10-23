@@ -4,6 +4,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 
+import '../../../core/utils/app_locale.dart';
+
 /// Result of editing a video: the original file plus edit instructions.
 /// Trimming is applied server-side (ffmpeg) at upload; [muted] is enforced
 /// at playback by every client, so a muted video stays silent everywhere.
@@ -220,20 +222,18 @@ class _VideoEditorScreenState extends State<VideoEditorScreen> {
     final c = _controller;
     final playing = c?.value.isPlaying ?? false;
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.black,
-        foregroundColor: Colors.white,
-        title: const Text('ویرایش ویدیو'),
+        title: Text(AppLocale.pick('ویرایش ویدیو', 'Edit video')),
         actions: [
           IconButton(
-            tooltip: _muted ? 'با صدا' : 'بی‌صدا',
+            tooltip: _muted ? AppLocale.pick('با صدا', 'Unmute') : AppLocale.pick('بی‌صدا', 'Mute'),
             icon: Icon(_muted ? Icons.volume_off : Icons.volume_up,
-                color: _muted ? Colors.amber : Colors.white),
+                color: _muted ? Colors.amber : Theme.of(context).colorScheme.onSurface),
             onPressed: _ready ? _toggleMute : null,
           ),
           IconButton(
-            tooltip: 'تأیید',
+            tooltip: AppLocale.pick('تأیید', 'Done'),
             icon: const Icon(Icons.check, color: Colors.green),
             onPressed: _ready ? _done : null,
           ),
@@ -244,25 +244,25 @@ class _VideoEditorScreenState extends State<VideoEditorScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.videocam_off_outlined,
-                      color: Colors.white38, size: 48),
+                  Icon(Icons.videocam_off_outlined,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant, size: 48),
                   const SizedBox(height: 8),
-                  const Text('این ویدیو قابل پیش‌نمایش نیست',
-                      style: TextStyle(color: Colors.white70)),
+                  Text(AppLocale.pick('این ویدیو قابل پیش‌نمایش نیست', 'This video cannot be previewed'),
+                      style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
                   const SizedBox(height: 12),
                   FilledButton(
                     onPressed: () => Navigator.pop(
                       context,
                       EditedVideo(file: widget.videoFile),
                     ),
-                    child: const Text('ارسال بدون ویرایش'),
+                    child: Text(AppLocale.pick('ارسال بدون ویرایش', 'Send original')),
                   ),
                 ],
               ),
             )
           : !_ready || c == null
-              ? const Center(
-                  child: CircularProgressIndicator(color: Colors.white))
+              ? Center(
+                  child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary))
               : Column(
                   children: [
                     Expanded(
@@ -294,7 +294,7 @@ class _VideoEditorScreenState extends State<VideoEditorScreen> {
                       ),
                     ),
                     Container(
-                      color: Colors.grey.shade900,
+                      color: Theme.of(context).colorScheme.surface,
                       padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
@@ -302,15 +302,13 @@ class _VideoEditorScreenState extends State<VideoEditorScreen> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text('شروع: ${_fmt(_start)}',
-                                  style: const TextStyle(
-                                      color: Colors.white70, fontSize: 12)),
-                              Text('پایان: ${_fmt(_end)}',
-                                  style: const TextStyle(
-                                      color: Colors.white70, fontSize: 12)),
-                              Text('مدت: ${_fmt(_end - _start)}',
-                                  style: const TextStyle(
-                                      color: Colors.greenAccent,
+                              Text('${AppLocale.pick('شروع', 'Start')}: ${_fmt(_start)}',
+                                  style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12)),
+                              Text('${AppLocale.pick('پایان', 'End')}: ${_fmt(_end)}',
+                                  style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12)),
+                              Text('${AppLocale.pick('مدت', 'Duration')}: ${_fmt(_end - _start)}',
+                                  style: TextStyle(
+                                      color: Theme.of(context).colorScheme.primary,
                                       fontSize: 12,
                                       fontWeight: FontWeight.w700)),
                             ],
@@ -323,7 +321,7 @@ class _VideoEditorScreenState extends State<VideoEditorScreen> {
                                 playing
                                     ? Icons.pause_circle_filled
                                     : Icons.play_circle_fill,
-                                color: Colors.white,
+                                color: Theme.of(context).colorScheme.onSurface,
                               ),
                               onPressed: _togglePlay,
                             ),
@@ -347,17 +345,17 @@ class _VideoEditorScreenState extends State<VideoEditorScreen> {
                               ),
                             ),
                             Text(_fmt(_position),
-                                style: const TextStyle(
-                                    color: Colors.white54, fontSize: 11)),
+                                style: TextStyle(
+                                    color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 11)),
                           ]),
                           const SizedBox(height: 2),
                           Row(children: [
-                            const Icon(Icons.content_cut,
-                                color: Colors.white54, size: 16),
+                            Icon(Icons.content_cut,
+                                color: Theme.of(context).colorScheme.onSurfaceVariant, size: 16),
                             const SizedBox(width: 6),
-                            const Text('برش',
+                            Text(AppLocale.pick('برش', 'Trim'),
                                 style: TextStyle(
-                                    color: Colors.white54, fontSize: 11)),
+                                    color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 11)),
                             Expanded(
                               child: RangeSlider(
                                 values: RangeValues(
@@ -371,7 +369,7 @@ class _VideoEditorScreenState extends State<VideoEditorScreen> {
                                 min: 0,
                                 max: _total.inMilliseconds.toDouble(),
                                 labels: RangeLabels(_fmt(_start), _fmt(_end)),
-                                activeColor: Colors.greenAccent,
+                                activeColor: Theme.of(context).colorScheme.primary,
                                 onChanged: _onRangeChanged,
                                 onChangeEnd: _onRangeChangeEnd,
                               ),

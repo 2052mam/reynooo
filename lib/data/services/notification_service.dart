@@ -193,7 +193,7 @@ class NotificationService {
     try {
       await _plugin.show(
         id: 770001,
-        title: 'SecureMessenger',
+        title: 'Reyno',
         body: AppLocale.pick(
           '✅ اعلان آزمایشی رسید — اتصال پیام‌رسانی سالم است.',
           '✅ Test notification delivered — messaging is connected.',

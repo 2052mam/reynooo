@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/app_locale.dart';
 import '../../../data/models/user_model.dart';
 import '../../../data/services/account_service.dart';
 import '../../../data/services/api_service.dart';
@@ -90,7 +91,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         setState(() => _error = error.message);
       }
     } catch (_) {
-      if (mounted) setState(() => _error = 'خطا در ارتباط با سرور');
+      if (mounted) setState(() => _error = AppLocale.pick('خطا در ارتباط با سرور', 'Could not connect to the server.'));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -127,8 +128,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     if (!mounted) return;
     setState(() => _error = null);
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('این شماره ثبت‌نام نشده است؛ ابتدا ثبت‌نام کنید.'),
+      SnackBar(
+        content: Text(AppLocale.pick('این شماره ثبت‌نام نشده است؛ ابتدا ثبت‌نام کنید.', 'This number is not registered. Please sign up first.')),
       ),
     );
     await Navigator.of(context).push(
@@ -148,8 +149,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
     if (sent && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('پیام شما برای پشتیبانی ثبت شد.'),
+        SnackBar(
+          content: Text(AppLocale.pick('پیام شما برای پشتیبانی ثبت شد.', 'Your message was sent to support.')),
         ),
       );
     }
@@ -186,7 +187,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       if (!mounted) return;
       setState(() {
         _switching = false;
-        _error = 'ورود با این حساب ممکن نشد. شماره موبایل یا رمز عبور را وارد کنید.';
+        _error = AppLocale.pick('ورود با این حساب ممکن نشد. شماره موبایل یا رمز عبور را وارد کنید.', 'Could not sign in to this account. Enter the phone number or password.');
       });
       await AccountService.remove(account.userId);
       await _loadSavedAccounts();
@@ -204,11 +205,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     return Scaffold(
       appBar: widget.isAddAccount
           ? AppBar(
-              title: const Text('افزودن حساب'),
+              title: Text(AppLocale.pick('افزودن حساب', 'Add account')),
               leading: canPop
                   ? IconButton(
                       icon: const Icon(Icons.arrow_back),
-                      tooltip: 'بازگشت به حساب فعلی',
+                      tooltip: AppLocale.pick('بازگشت به حساب فعلی', 'Return to current account'),
                       onPressed: () => Navigator.of(context).pop(),
                     )
                   : null,
@@ -225,41 +226,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   const SizedBox(height: 12),
-                  // Telegram-style branded emblem
                   Center(
-                    child: Container(
-                      width: 88,
-                      height: 88,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: LinearGradient(
-                          colors: [
-                            const Color(0xFF2AABEE),
-                            primary,
-                          ],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: primary.withValues(alpha: 0.35),
-                            blurRadius: 20,
-                            offset: const Offset(0, 6),
-                          ),
-                        ],
-                      ),
-                      child: const Center(
-                        child: Icon(
-                          Icons.send_rounded,
-                          size: 44,
-                          color: Colors.white,
-                        ),
-                      ),
+                    child: Image.asset(
+                      isDark
+                          ? 'assets/icons/reyno_logo_dark.png'
+                          : 'assets/icons/reyno_logo.png',
+                      width: 228,
+                      height: 76,
+                      fit: BoxFit.contain,
+                      semanticLabel: 'Reyno',
                     ),
                   ),
                   const SizedBox(height: 24),
                   Text(
-                    widget.isAddAccount ? 'افزودن حساب جدید' : 'ورود به SecureMessenger',
+                    widget.isAddAccount ? AppLocale.pick('افزودن حساب جدید', 'Add another account') : AppLocale.pick('ورود به Reyno', 'Sign in to Reyno'),
                     style: const TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.w800,
@@ -270,8 +250,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   const SizedBox(height: 8),
                   Text(
                     phoneMode
-                        ? 'شماره موبایل خود را وارد کنید؛ اگر ثبت‌نام نکرده‌اید به صفحه ثبت‌نام می‌روید'
-                        : 'ورود ایمیلی فقط برای حساب‌های قدیمیِ بدون شماره موبایل است',
+                        ? AppLocale.pick('شماره موبایل خود را وارد کنید؛ اگر ثبت‌نام نکرده‌اید به صفحه ثبت‌نام می‌روید', 'Enter your mobile number. If you are not registered, you can sign up next.')
+                        : AppLocale.pick('ورود ایمیلی فقط برای حساب‌های قدیمیِ بدون شماره موبایل است', 'Email sign-in is available only for legacy accounts without a mobile number.'),
                     style: TextStyle(
                       color: theme.textTheme.bodySmall?.color,
                       fontSize: 13.5,
@@ -284,7 +264,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     Align(
                       alignment: AlignmentDirectional.centerStart,
                       child: Text(
-                        'ادامه با حساب‌های ذخیره‌شده',
+                        AppLocale.pick('ادامه با حساب‌های ذخیره‌شده', 'Continue with a saved account'),
                         style: TextStyle(
                           fontWeight: FontWeight.w700,
                           fontSize: 13.5,
@@ -330,7 +310,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 12),
                           child: Text(
-                            'یا ورود با شماره دیگر',
+                            AppLocale.pick('یا ورود با شماره دیگر', 'Or sign in with another number'),
                             style: TextStyle(fontSize: 12, color: theme.textTheme.bodySmall?.color),
                           ),
                         ),
@@ -346,26 +326,26 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       autofocus: !widget.isAddAccount && _saved.isEmpty,
                       textDirection: TextDirection.ltr,
                       decoration: InputDecoration(
-                        labelText: 'شماره موبایل',
+                        labelText: AppLocale.pick('شماره موبایل', 'Mobile number'),
                         hintText: '+989121234567',
                         hintTextDirection: TextDirection.ltr,
                         prefixIcon: Icon(Icons.phone_iphone_rounded, color: primary),
-                        helperText: 'شماره همراه با کد کشور (مثال: +989121234567 یا 09121234567)',
+                        helperText: AppLocale.pick('شماره همراه با کد کشور (مثال: +989121234567 یا 09121234567)', 'Include the country code (e.g. +989121234567).'),
                       ),
                       validator: (value) => _validPhone(value ?? '')
                           ? null
-                          : 'شماره موبایل معتبر نیست',
+                          : AppLocale.pick('شماره موبایل معتبر نیست', 'Enter a valid mobile number.'),
                     ),
                   ] else ...[
                     TextFormField(
                       controller: _emailCtrl,
                       keyboardType: TextInputType.emailAddress,
                       decoration: InputDecoration(
-                        labelText: 'ایمیل',
+                        labelText: AppLocale.pick('ایمیل', 'Email'),
                         prefixIcon: Icon(Icons.email_outlined, color: primary),
                       ),
                       validator: (value) => (value == null || !value.contains('@'))
-                          ? 'ایمیل نامعتبر است'
+                          ? AppLocale.pick('ایمیل نامعتبر است', 'Enter a valid email address.')
                           : null,
                     ),
                     const SizedBox(height: 16),
@@ -373,7 +353,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       controller: _passwordCtrl,
                       obscureText: _obscure,
                       decoration: InputDecoration(
-                        labelText: 'رمز عبور',
+                        labelText: AppLocale.pick('رمز عبور', 'Password'),
                         prefixIcon: Icon(Icons.lock_outline_rounded, color: primary),
                         suffixIcon: IconButton(
                           icon: Icon(
@@ -383,7 +363,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         ),
                       ),
                       validator: (value) => (value == null || value.length < 6)
-                          ? 'رمز عبور حداقل ۶ کاراکتر است'
+                          ? AppLocale.pick('رمز عبور حداقل ۶ کاراکتر است', 'Password must be at least 6 characters.')
                           : null,
                     ),
                   ],
@@ -432,7 +412,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               ),
                             )
                           : Text(
-                              phoneMode ? 'ادامه' : 'ورود',
+                              phoneMode ? AppLocale.pick('ادامه', 'Continue') : AppLocale.pick('ورود', 'Sign in'),
                               style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w700,
@@ -451,14 +431,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           _error = null;
                         }),
                         child: Text(
-                          phoneMode ? 'ورود با ایمیل و رمز' : 'ورود با شماره موبایل',
+                          phoneMode ? AppLocale.pick('ورود با ایمیل و رمز', 'Sign in with email and password') : AppLocale.pick('ورود با شماره موبایل', 'Sign in with mobile number'),
                           style: const TextStyle(fontSize: 13),
                         ),
                       ),
                       TextButton.icon(
                         key: const ValueKey('login-contact-support'),
                         icon: const Icon(Icons.support_agent_rounded, size: 18),
-                        label: const Text('پشتیبانی', style: TextStyle(fontSize: 13)),
+                        label: Text(AppLocale.pick('پشتیبانی', 'Support'), style: const TextStyle(fontSize: 13)),
                         onPressed: _contactSupport,
                       ),
                     ],
@@ -474,8 +454,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             ),
                           );
                         },
-                        child: const Text(
-                          'حساب ندارید؟ ثبت‌نام کنید',
+                        child: Text(
+                          AppLocale.pick('حساب ندارید؟ ثبت‌نام کنید', 'New to Reyno? Sign up'),
                           style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14.5),
                         ),
                       ),
